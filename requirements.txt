@@ -1,0 +1,9 @@
+### To install the packages type in the console:
+### pip install -r requirements.txt
+
+numpy
+opencv-python
+tensorflow-gpu
+
+# Python for Window Extensions
+pywin32
