@@ -4,12 +4,8 @@ import cv2
 import numpy as np
 import win32gui, win32ui, win32con
 
-# name of the window to grab
-# winName = "Grand Theft Auto V"
-winName = "Untitled - Notepad"
 
-
-def grab_screen():
+def grab_screen(winName):
     desktop = win32gui.GetDesktopWindow()
 
     # get area by a window name

@@ -3,6 +3,7 @@
 
 numpy
 opencv-python
+# tensorflow
 tensorflow-gpu
 
 # Python for Window Extensions
