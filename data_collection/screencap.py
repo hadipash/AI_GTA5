@@ -12,7 +12,11 @@ def grab_screen(winName):
     gtawin = win32gui.FindWindow(None, winName)
     # get the bounding box of the window
     left, top, x2, y2 = win32gui.GetWindowRect(gtawin)
-    top += 30  # for the title bar
+    # cut window boarders
+    top += 32
+    left += 3
+    y2 -= 4
+    x2 -= 4
     width = x2 - left + 1
     height = y2 - top + 1
 
