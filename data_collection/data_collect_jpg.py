@@ -7,7 +7,9 @@ for further trainings of NN.
 import csv
 import time
 import cv2
+import os
 
+from numpy import genfromtxt
 from data_collection.screencap import grab_screen
 from data_collection.keycap import key_check
 
@@ -23,11 +25,18 @@ sd = [0, 0, 0, 0, 0, 0, 0, 1, 0]
 nk = [0, 0, 0, 0, 0, 0, 0, 0, 1]  # no key pressed
 
 # files to save training data
-table = 'training_data.csv'
 img = "img/img{}.jpg"
+table = 'training_data.csv'
+
+# read previously stored data to avoid overwriting
+if os.path.isfile(table):
+    with open(table, 'rb') as f:
+        lines = f.readlines()
+        genfromtxt(lines[-1:], delimiter=',')
+else:
+    img_num = 1
 
 training_data = []
-img_num = 1
 
 
 def keys_to_output(keys):
@@ -42,18 +51,18 @@ def keys_to_output(keys):
         output = wa
     elif 'W' in keys and 'D' in keys:
         output = wd
+    elif 'W' in keys:
+        output = w
     elif 'S' in keys and 'A' in keys:
         output = sa
     elif 'S' in keys and 'D' in keys:
         output = sd
-    elif 'W' in keys:
-        output = w
-    elif 'S' in keys:
-        output = s
     elif 'A' in keys:
         output = a
     elif 'D' in keys:
         output = d
+    elif 'S' in keys:
+        output = s
     else:
         output = nk
 
@@ -64,7 +73,6 @@ def save():
     global img_num, training_data
 
     with open(table, 'a', newline='') as f:
-        global img_num
         writer = csv.writer(f)
 
         for td in training_data:
@@ -93,7 +101,7 @@ def main():
             output = keys_to_output(key_check())
             training_data.append([screen, output])
 
-            # save the data every 1000 iterations
+            # save the data every 100 iterations
             if len(training_data) % 100 == 0:
                 print("Saving")
                 save()

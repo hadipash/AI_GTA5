@@ -1,3 +1,8 @@
+"""
+Module for testing best way to store and manage training data
+"""
+
+
 import h5py
 import numpy
 import time
