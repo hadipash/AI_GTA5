@@ -8,3 +8,5 @@ tensorflow-gpu
 
 # Python for Window Extensions
 pywin32
+# For data management
+h5py
