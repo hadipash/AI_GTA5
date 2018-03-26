@@ -5,13 +5,15 @@ for further trainings of NN.
 """
 
 import csv
-import time
-import cv2
 import os
 import re
+import threading
+import time
 
-from data_collection.screencap import grab_screen
+import cv2
+
 from data_collection.keycap import key_check
+from data_collection.screencap import grab_screen
 
 # key values in One-Hot Encoding
 w = [1, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -24,11 +26,11 @@ sa = [0, 0, 0, 0, 0, 0, 1, 0, 0]
 sd = [0, 0, 0, 0, 0, 0, 0, 1, 0]
 nk = [0, 0, 0, 0, 0, 0, 0, 0, 1]  # no key pressed
 
+lock = threading.Lock()
+
 # files to save training data
 img = "img/img{}.jpg"
 table = 'training_data.csv'
-
-training_data = []
 # read previously stored data to avoid overwriting
 img_num = 1
 if os.path.isfile(table):
@@ -66,35 +68,34 @@ def keys_to_output(keys):
     return output
 
 
-def save():
-    global img_num, training_data
-    last_time = time.time()
+def save(data):
+    global img_num
 
-    with open(table, 'a', newline='') as f:
-        writer = csv.writer(f)
+    with lock:  # make sure that data is consistent
+        last_time = time.time()
+        with open(table, 'a', newline='') as f:
+            writer = csv.writer(f)
 
-        for td in training_data:
-            # write in csv
-            writer.writerow([img.format(img_num), td[1]])
-            # write captures in files
-            cv2.imwrite(img.format(img_num), td[0])
-            img_num += 1
-
-    print('Saving took {} seconds'.format(time.time() - last_time))
+            for td in data:
+                # write in csv
+                writer.writerow([img.format(img_num), td[1]])
+                # write captures in files
+                cv2.imwrite(img.format(img_num), td[0])
+                img_num += 1
+        print('Saving took {} seconds'.format(time.time() - last_time))
 
 
 def main():
-    global training_data
-
     # countdown for having time to open GTA V window
     for i in list(range(5))[::-1]:
         print(i + 1)
         time.sleep(1)
     print("Start!")
 
-    # last_time = time.time()     # to measure the number of frames
+    last_time = time.time()  # to measure the number of frames
     close = False  # to exit execution
     pause = False  # to pause execution
+    training_data = []  # list for storing training data
 
     while not close:
         while not pause:
@@ -102,15 +103,15 @@ def main():
             output = keys_to_output(key_check())
             training_data.append([screen, output])
 
-            # save the data every 100 iterations
-            if len(training_data) % 100 == 0:
-                save()
+            # save the data every 500 iterations
+            if len(training_data) % 500 == 0:
+                threading.Thread(target=save, args=(training_data,)).start()
                 training_data = []
             else:
                 time.sleep(0.02)  # in order to slow down fps
 
-            # print('Main loop took {} seconds'.format(time.time() - last_time))
-            # last_time = time.time()
+            print('Main loop took {} seconds'.format(time.time() - last_time))
+            last_time = time.time()
 
             keys = key_check()
             if 'T' in keys:
@@ -126,7 +127,7 @@ def main():
         elif 'Q' in keys:
             close = True
             print('Saving data and closing the program.')
-            save()
+            save(training_data)
 
 
 if __name__ == '__main__':
