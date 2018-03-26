@@ -1,5 +1,6 @@
 # Done by Frannecklp
 
+import cv2
 import numpy as np
 import win32gui, win32ui, win32con
 
@@ -50,4 +51,4 @@ def grab_screen(winName: str = "Grand Theft Auto V"):
     # After the object is deleted, the specified handle is no longer valid.
     win32gui.DeleteObject(bmp.GetHandle())
 
-    return img
+    return cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)

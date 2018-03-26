@@ -1,5 +1,5 @@
 """
-Data collection module.
+Data collection module (saves data in H5 format).
 Saves screen captures and pressed keys into a file
 for further trainings of NN.
 """
@@ -25,12 +25,15 @@ nk = [0, 0, 0, 0, 0, 0, 0, 0, 1]  # no key pressed
 
 # open the data file
 data_file = None
-if os.path.isfile("data.h5"):
-    data_file = h5py.File("data.h5", 'a')
+if os.path.isfile("training_data.h5"):
+    data_file = h5py.File("training_data.h5", 'a')
 else:
-    data_file = h5py.File("data.h5", 'w')
-    data_file.create_dataset('img', (0, 240, 320, 3), dtype='u1', maxshape=(None, 240, 320, 3))
-    data_file.create_dataset('key', (0, 9), dtype='u1', maxshape=(None, 9))
+    data_file = h5py.File("training_data.h5", 'w')
+    # Write data in chunks for faster writing and reading by NN
+    data_file.create_dataset('img', (0, 240, 320, 3), dtype='u1',
+                             maxshape=(None, 240, 320, 3), chunks=(300, 240, 320, 3))
+    data_file.create_dataset('key', (0, 9), dtype='u1',
+                             maxshape=(None, 9), chunks=(300, 9))
 
 training_img = []
 training_key = []
@@ -68,12 +71,12 @@ def keys_to_output(keys):
 
 def save():
     if training_img:  # if the list is not empty
-        last_time = time.time()
+        # last_time = time.time()
         data_file["img"].resize((data_file["img"].shape[0] + len(training_img)), axis=0)
         data_file["img"][-len(training_img):] = training_img
         data_file["key"].resize((data_file["key"].shape[0] + len(training_key)), axis=0)
         data_file["key"][-len(training_key):] = training_key
-        print('Saving took {} seconds'.format(time.time() - last_time))
+        # print('Saving took {} seconds'.format(time.time() - last_time))
 
 
 def main():
