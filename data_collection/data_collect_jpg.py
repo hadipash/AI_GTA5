@@ -72,7 +72,7 @@ def save(data):
     global img_num
 
     with lock:  # make sure that data is consistent
-        last_time = time.time()
+        # last_time = time.time()
         with open(table, 'a', newline='') as f:
             writer = csv.writer(f)
 
@@ -82,7 +82,7 @@ def save(data):
                 # write captures in files
                 cv2.imwrite(img.format(img_num), td[0])
                 img_num += 1
-        print('Saving took {} seconds'.format(time.time() - last_time))
+        # print('Saving took {} seconds'.format(time.time() - last_time))
 
 
 def main():
@@ -92,7 +92,7 @@ def main():
         time.sleep(1)
     print("Start!")
 
-    last_time = time.time()  # to measure the number of frames
+    # last_time = time.time()  # to measure the number of frames
     close = False  # to exit execution
     pause = False  # to pause execution
     training_data = []  # list for storing training data
@@ -107,11 +107,10 @@ def main():
             if len(training_data) % 500 == 0:
                 threading.Thread(target=save, args=(training_data,)).start()
                 training_data = []
-            else:
-                time.sleep(0.02)  # in order to slow down fps
 
-            print('Main loop took {} seconds'.format(time.time() - last_time))
-            last_time = time.time()
+            time.sleep(0.02)  # in order to slow down fps
+            # print('Main loop took {} seconds'.format(time.time() - last_time))
+            # last_time = time.time()
 
             keys = key_check()
             if 'T' in keys:

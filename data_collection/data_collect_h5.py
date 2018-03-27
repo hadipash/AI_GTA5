@@ -4,13 +4,15 @@ Saves screen captures and pressed keys into a file
 for further trainings of NN.
 """
 
-import h5py
-import time
-import cv2
 import os
+import threading
+import time
 
-from data_collection.screencap import grab_screen
+import cv2
+import h5py
+
 from data_collection.keycap import key_check
+from data_collection.screencap import grab_screen
 
 # key values in One-Hot Encoding
 w = [1, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -23,6 +25,8 @@ sa = [0, 0, 0, 0, 0, 0, 1, 0, 0]
 sd = [0, 0, 0, 0, 0, 0, 0, 1, 0]
 nk = [0, 0, 0, 0, 0, 0, 0, 0, 1]  # no key pressed
 
+lock = threading.Lock()
+
 # open the data file
 data_file = None
 if os.path.isfile("training_data.h5"):
@@ -34,9 +38,6 @@ else:
                              maxshape=(None, 240, 320, 3), chunks=(300, 240, 320, 3))
     data_file.create_dataset('key', (0, 9), dtype='u1',
                              maxshape=(None, 9), chunks=(300, 9))
-
-training_img = []
-training_key = []
 
 
 def keys_to_output(keys):
@@ -69,19 +70,18 @@ def keys_to_output(keys):
     return output
 
 
-def save():
-    if training_img:  # if the list is not empty
-        # last_time = time.time()
-        data_file["img"].resize((data_file["img"].shape[0] + len(training_img)), axis=0)
-        data_file["img"][-len(training_img):] = training_img
-        data_file["key"].resize((data_file["key"].shape[0] + len(training_key)), axis=0)
-        data_file["key"][-len(training_key):] = training_key
-        # print('Saving took {} seconds'.format(time.time() - last_time))
+def save(data_img, data_key):
+    if data_img:  # if the list is not empty
+        with lock:  # make sure that data is consistent
+            # last_time = time.time()
+            data_file["img"].resize((data_file["img"].shape[0] + len(data_img)), axis=0)
+            data_file["img"][-len(data_img):] = data_img
+            data_file["key"].resize((data_file["key"].shape[0] + len(data_key)), axis=0)
+            data_file["key"][-len(data_key):] = data_key
+            # print('Saving took {} seconds'.format(time.time() - last_time))
 
 
 def main():
-    global training_img, training_key
-
     # countdown for having time to open GTA V window
     for i in list(range(5))[::-1]:
         print(i + 1)
@@ -91,6 +91,8 @@ def main():
     # last_time = time.time()     # to measure the number of frames
     close = False  # to exit execution
     pause = False  # to pause execution
+    training_img = []  # lists for storing training data
+    training_key = []
 
     while not close:
         while not pause:
@@ -101,12 +103,11 @@ def main():
 
             # save the data every 300 iterations
             if len(training_img) % 300 == 0:
-                save()
+                threading.Thread(target=save, args=(training_img, training_key)).start()
                 training_img = []
                 training_key = []
-            else:
-                time.sleep(0.02)  # in order to slow down fps
 
+            time.sleep(0.02)  # in order to slow down fps
             # print('Main loop took {} seconds'.format(time.time() - last_time))
             # last_time = time.time()
 
@@ -124,7 +125,7 @@ def main():
         elif 'Q' in keys:
             close = True
             print('Saving data and closing the program.')
-            save()
+            save(training_img, training_key)
 
     data_file.close()
 
