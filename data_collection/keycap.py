@@ -1,3 +1,4 @@
+# This code based on Harrison Kinsley's (Sentdex) code (https://github.com/Sentdex/pygta5)
 # Citation: Box Of Hats (https://github.com/Box-Of-Hats)
 
 import win32api as wapi

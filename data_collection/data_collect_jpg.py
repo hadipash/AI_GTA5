@@ -1,3 +1,5 @@
+# This code based on Harrison Kinsley's (Sentdex) code (https://github.com/Sentdex/pygta5)
+
 """
 Data collection module (saves data in CSV and JPG formats).
 Saves screen captures and pressed keys into a file

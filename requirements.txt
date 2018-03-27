@@ -10,3 +10,7 @@ tensorflow-gpu
 pywin32
 # For data management
 h5py
+# A high-level neural networks API capable of running on top of TensorFlow
+Keras
+# Tools for data mining and data analysis
+scikit-learn

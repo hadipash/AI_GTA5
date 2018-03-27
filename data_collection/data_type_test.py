@@ -1,11 +1,11 @@
 """
-Module for testing best way to store and manage training data
+Module for finding the best way to store and manage training data
 """
 
+import time
 
 import h5py
 import numpy
-import time
 
 
 def test(test_img, test_key):
