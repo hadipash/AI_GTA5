@@ -1,6 +1,10 @@
 # This code based on Harrison Kinsley's (Sentdex) code (https://github.com/Sentdex/pygta5)
 # Citation: Box Of Hats (https://github.com/Box-Of-Hats)
 
+"""
+Module for reading keys
+"""
+
 import win32api as wapi
  
 keyList = ["\b"]

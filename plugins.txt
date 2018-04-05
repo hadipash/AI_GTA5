@@ -1,5 +1,9 @@
 ### List of plugins used in GTA V
 ### for generating better conditions for AI
 
+# allows installation of plugins
+Script Hook V
 # for adjusting weather conditions, time, amount of car, pedestrians, etc.
 Simple Trainer for GTA V
+# to set maximum speed limit
+SpeedLimiter [.ASI]

@@ -1,12 +1,16 @@
 # This code based on Harrison Kinsley's (Sentdex) code (https://github.com/Sentdex/pygta5)
 # Done by Frannecklp
 
-import win32con
+"""
+
+"""
+
 import win32gui
 import win32ui
 
 import cv2
 import numpy as np
+import win32con
 
 
 def grab_screen(winName: str = "Grand Theft Auto V"):

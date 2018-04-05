@@ -17,57 +17,36 @@ import cv2
 from data_collection.keycap import key_check
 from data_collection.screencap import grab_screen
 
-# key values in One-Hot Encoding
-w = [1, 0, 0, 0, 0, 0, 0, 0, 0]
-s = [0, 1, 0, 0, 0, 0, 0, 0, 0]
-a = [0, 0, 1, 0, 0, 0, 0, 0, 0]
-d = [0, 0, 0, 1, 0, 0, 0, 0, 0]
-wa = [0, 0, 0, 0, 1, 0, 0, 0, 0]
-wd = [0, 0, 0, 0, 0, 1, 0, 0, 0]
-sa = [0, 0, 0, 0, 0, 0, 1, 0, 0]
-sd = [0, 0, 0, 0, 0, 0, 0, 1, 0]
-nk = [0, 0, 0, 0, 0, 0, 0, 0, 1]  # no key pressed
-
 lock = threading.Lock()
 
 # files to save training data
-img = "img/img{}.jpg"
+path = "E:\Graduation_Project"
+img = "img\img{}.jpg"
+img_path = os.path.join(path, "img\img{}.jpg")
 table = 'training_data.csv'
 # read previously stored data to avoid overwriting
 img_num = 1
-if os.path.isfile(table):
-    with open(table, 'r') as f:
+if os.path.isfile(os.path.join(path, table)):
+    with open(os.path.join(path, table), 'r') as f:
         img_num = int(re.findall('\d+', f.readlines()[-1])[0]) + 1
 
 
 def keys_to_output(keys):
-    """
-    Convert keys to a ...multi-hot... array
-     0  1  2  3  4   5   6   7    8
-    [W, S, A, D, WA, WD, SA, SD, NOKEY] boolean values.
-    """
-    output = []
+    # initial values: no key pressed
+    throttle = 0
+    steering = 0
 
-    if 'W' in keys and 'A' in keys:
-        output = wa
-    elif 'W' in keys and 'D' in keys:
-        output = wd
-    elif 'W' in keys:
-        output = w
-    elif 'S' in keys and 'A' in keys:
-        output = sa
-    elif 'S' in keys and 'D' in keys:
-        output = sd
-    elif 'A' in keys:
-        output = a
-    elif 'D' in keys:
-        output = d
+    if 'W' in keys:
+        throttle = 1
     elif 'S' in keys:
-        output = s
-    else:
-        output = nk
+        throttle = -1
 
-    return output
+    if 'A' in keys:
+        steering = -1
+    elif 'D' in keys:
+        steering = 1
+
+    return throttle, steering
 
 
 def save(data):
@@ -75,14 +54,14 @@ def save(data):
 
     with lock:  # make sure that data is consistent
         # last_time = time.time()
-        with open(table, 'a', newline='') as f:
+        with open(os.path.join(path, table), 'a', newline='') as f:
             writer = csv.writer(f)
 
             for td in data:
-                # write in csv
-                writer.writerow([img.format(img_num), td[1]])
+                # write in csv: image_name, throttle, steering
+                writer.writerow([img.format(img_num), td[1], td[2]])
                 # write captures in files
-                cv2.imwrite(img.format(img_num), td[0])
+                cv2.imwrite(img_path.format(img_num), td[0])
                 img_num += 1
         # print('Saving took {} seconds'.format(time.time() - last_time))
 
@@ -102,8 +81,8 @@ def main():
     while not close:
         while not pause:
             screen = cv2.resize(grab_screen("Grand Theft Auto V"), (320, 240))
-            output = keys_to_output(key_check())
-            training_data.append([screen, output])
+            throttle, steering = keys_to_output(key_check())
+            training_data.append([screen, throttle, steering])
 
             # save the data every 500 iterations
             if len(training_data) % 500 == 0:
