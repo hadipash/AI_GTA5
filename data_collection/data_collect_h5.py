@@ -79,7 +79,7 @@ def main():
 
     while not close:
         while not pause:
-            screen = cv2.resize(grab_screen("Untitled - Notepad"), (320, 240))
+            screen = cv2.resize(grab_screen("Grand Theft Auto V"), (320, 240))
             th, st = keys_to_output(key_check())
             training_img.append(screen)
             throttle.append(th)

@@ -144,7 +144,7 @@ def main():
     """
     # The argparse module makes it easy to write user-friendly command-line interfaces.
     parser = argparse.ArgumentParser(description='Behavioral Cloning Training Program')
-    parser.add_argument('-d', help='data directory', dest='data_dir', type=str, default='data_collection')
+    parser.add_argument('-d', help='data directory', dest='data_dir', type=str, default=path)
     parser.add_argument('-t', help='test size fraction', dest='test_size', type=float, default=0.2)
     parser.add_argument('-k', help='drop out probability', dest='keep_prob', type=float, default=0.5)
     parser.add_argument('-n', help='number of epochs', dest='nb_epoch', type=int, default=10)

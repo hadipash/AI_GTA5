@@ -3,12 +3,10 @@
 # http://www.gamespp.com/directx/directInputKeyboardScanCodes.html
 
 """
-This module help to control a car in the game by
+Module for sending key-pressing signals to the game.
 """
 
-
 import ctypes
-import time
 
 SendInput = ctypes.windll.user32.SendInput
 
@@ -61,7 +59,6 @@ class Input(ctypes.Structure):
 
 
 # Actuals Functions
-
 def PressKey(hexKeyCode):
     extra = ctypes.c_ulong(0)
     ii_ = Input_I()
@@ -76,10 +73,3 @@ def ReleaseKey(hexKeyCode):
     ii_.ki = KeyBdInput(0, hexKeyCode, 0x0008 | 0x0002, 0, ctypes.pointer(extra))
     x = Input(ctypes.c_ulong(1), ii_)
     ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
-
-
-if __name__ == '__main__':
-    PressKey(0x11)
-    time.sleep(1)
-    ReleaseKey(0x11)
-    time.sleep(1)
