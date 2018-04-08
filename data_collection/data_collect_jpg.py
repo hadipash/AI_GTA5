@@ -67,6 +67,8 @@ def save(data):
 
 
 def main():
+    # TODO: add speed and direction into input data
+
     # countdown for having time to open GTA V window
     for i in list(range(5))[::-1]:
         print(i + 1)
@@ -96,7 +98,7 @@ def main():
             keys = key_check()
             if 'T' in keys:
                 pause = True
-                print('Paused. To exit the program press Q.')
+                print('Paused. To exit the program press Z.')
                 time.sleep(0.5)
 
         keys = key_check()
@@ -104,7 +106,7 @@ def main():
             pause = False
             print('Unpaused')
             time.sleep(1)
-        elif 'Q' in keys:
+        elif 'Z' in keys:
             close = True
             print('Saving data and closing the program.')
             save(training_data)

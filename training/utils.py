@@ -138,26 +138,26 @@ def augment(data_dir, image, steering_angle, range_x=100, range_y=10):
     return image, steering_angle
 
 
-def batch_generator(data_dir, image_path, steering, batch_size, is_training):
+def batch_generator(data_dir, image_path, keys, batch_size, is_training):
     """
     Generate training image give image paths and associated steering angles
     """
     images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
-    steers = np.empty(batch_size)
+    outputs = np.empty([batch_size, 2])
     while True:
         i = 0
         for index in np.random.permutation(image_path.shape[0]):
             camera = image_path[index]
-            steer = steering[index]
+            steer = keys[index][1]
             # augmentation
             if is_training and np.random.rand() < 0.6:
-                image, steering_angle = augment(data_dir, camera, steer)
+                image, steer = augment(data_dir, camera, steer)
             else:
                 image = load_image(data_dir, camera)
             # add the image and steering angle to the batch
             images[i] = preprocess(image)
-            steers[i] = steer
+            outputs[i] = [keys[index][0], steer]  # throttle and steering
             i += 1
             if i == batch_size:
                 break
-        yield images, steers
+        yield images, outputs

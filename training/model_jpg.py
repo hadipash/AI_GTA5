@@ -42,7 +42,7 @@ def load_data(args):
     # we'll store the camera images as our input data
     X = data_df['camera'].values
     # and our steering commands as our output data
-    y = data_df['steering'].values
+    y = data_df[['throttle', 'steering']].values
 
     # now we can split the data into a training (80), testing(20), and validation set
     # thanks scikit-learn
@@ -82,7 +82,7 @@ def build_model(args):
     model.add(Dense(100, activation='elu'))
     model.add(Dense(50, activation='elu'))
     model.add(Dense(10, activation='elu'))
-    model.add(Dense(1))
+    model.add(Dense(2))
     model.summary()
 
     return model

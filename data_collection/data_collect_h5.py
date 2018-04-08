@@ -99,7 +99,7 @@ def main():
             keys = key_check()
             if 'T' in keys:
                 pause = True
-                print('Paused. To exit the program press Q.')
+                print('Paused. To exit the program press Z.')
                 time.sleep(0.5)
 
         keys = key_check()
@@ -107,7 +107,7 @@ def main():
             pause = False
             print('Unpaused')
             time.sleep(1)
-        elif 'Q' in keys:
+        elif 'Z' in keys:
             close = True
             print('Saving data and closing the program.')
             save(training_img, throttle, steering)
