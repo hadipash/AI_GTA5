@@ -1,0 +1,9 @@
+# For testing AI an XBox controller emulator is needed
+# https://github.com/shauleiz/ScpVBus/releases
+
+ScpVBus
+
+# Installation:
+# In CMD (administrator): devcon.exe install ScpVBus.inf Root\ScpVBus
+# Removal:
+# In CMD (administrator): devcon.exe remove Root\ScpVBus

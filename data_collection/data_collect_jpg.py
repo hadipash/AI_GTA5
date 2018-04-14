@@ -14,7 +14,7 @@ import time
 
 import cv2
 
-from data_collection.keycap import key_check
+from data_collection.keycap import key_check, Gamepad
 from data_collection.screencap import grab_screen
 
 lock = threading.Lock()
@@ -69,6 +69,10 @@ def save(data):
 def main():
     # TODO: add speed and direction into input data
 
+    # initialize gamepad
+    gamepad = Gamepad()
+    gamepad.open()
+
     # countdown for having time to open GTA V window
     for i in list(range(5))[::-1]:
         print(i + 1)
@@ -83,7 +87,10 @@ def main():
     while not close:
         while not pause:
             screen = cv2.resize(grab_screen("Grand Theft Auto V"), (320, 240))
-            throttle, steering = keys_to_output(key_check())
+            # read values from the keyboard
+            # throttle, steering = keys_to_output(key_check())
+            # read throttle and steering values from the gamepad
+            throttle, steering = gamepad.get_state()
             training_data.append([screen, throttle, steering])
 
             # save the data every 500 iterations
@@ -97,12 +104,14 @@ def main():
 
             keys = key_check()
             if 'T' in keys:
+                gamepad.close()
                 pause = True
                 print('Paused. To exit the program press Z.')
                 time.sleep(0.5)
 
         keys = key_check()
         if 'T' in keys:
+            gamepad.open()
             pause = False
             print('Unpaused')
             time.sleep(1)

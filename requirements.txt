@@ -14,3 +14,5 @@ h5py
 Keras
 # Tools for data mining and data analysis
 scikit-learn
+# To read information from a gamepad
+inputs

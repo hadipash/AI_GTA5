@@ -61,7 +61,6 @@ def drive():
             image = np.array([image])  # the model expects 4D array
 
             # predict the steering angle for the image
-            # controls = round(float(model.predict(image, batch_size=1)))
             controls = model.predict(image, batch_size=1)
             controls = [round(float(controls[0][0])), round(float(controls[0][1]))]
             send_control(controls)
