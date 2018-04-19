@@ -31,6 +31,7 @@ if os.path.isfile(os.path.join(path, table)):
         img_num = int(re.findall('\d+', f.readlines()[-1])[0]) + 1
 
 
+# in case of using a keyboard
 def keys_to_output(keys):
     # initial values: no key pressed
     throttle = 0
@@ -87,7 +88,7 @@ def main():
     while not close:
         while not pause:
             screen = cv2.resize(grab_screen("Grand Theft Auto V"), (320, 240))
-            # read values from the keyboard
+            # read throttle and steering values from the keyboard
             # throttle, steering = keys_to_output(key_check())
             # read throttle and steering values from the gamepad
             throttle, steering = gamepad.get_state()

@@ -28,10 +28,10 @@ else:
     # Write data in chunks for faster writing and reading by NN
     data_file.create_dataset('img', (0, 240, 320, 3), dtype='u1',
                              maxshape=(None, 240, 320, 3), chunks=(30, 240, 320, 3))
-    data_file.create_dataset('throttle', (0,), dtype='i1', maxshape=(None,), chunks=(30,))
-    data_file.create_dataset('steering', (0,), dtype='i1', maxshape=(None,), chunks=(30,))
+    data_file.create_dataset('controls', (0, 2), dtype='i1', maxshape=(None, 2), chunks=(30, 2))
 
 
+# in case of using a keyboard
 def keys_to_output(keys):
     # initial values: no key pressed
     throttle = 0
@@ -50,16 +50,14 @@ def keys_to_output(keys):
     return throttle, steering
 
 
-def save(data_img, throttle, steering):
+def save(data_img, controls):
     if data_img:  # if the list is not empty
         with lock:  # make sure that data is consistent
             # last_time = time.time()
             data_file["img"].resize((data_file["img"].shape[0] + len(data_img)), axis=0)
             data_file["img"][-len(data_img):] = data_img
-            data_file["throttle"].resize((data_file["throttle"].shape[0] + len(throttle)), axis=0)
-            data_file["throttle"][-len(throttle):] = throttle
-            data_file["steering"].resize((data_file["steering"].shape[0] + len(steering)), axis=0)
-            data_file["steering"][-len(steering):] = steering
+            data_file["controls"].resize((data_file["controls"].shape[0] + len(controls)), axis=0)
+            data_file["controls"][-len(controls):] = controls
             # print('Saving took {} seconds'.format(time.time() - last_time))
 
 
@@ -78,26 +76,23 @@ def main():
     close = False  # to exit execution
     pause = False  # to pause execution
     training_img = []  # lists for storing training data
-    throttle = []
-    steering = []
+    controls = []
 
     while not close:
         while not pause:
             screen = cv2.resize(grab_screen("Grand Theft Auto V"), (320, 240))
             # read throttle and steering values from the keyboard
-            # th, st = keys_to_output(key_check())
+            # throttle, steering = keys_to_output(key_check())
             # read throttle and steering values from the gamepad
-            th, st = gamepad.get_state()
+            throttle, steering = gamepad.get_state()
             training_img.append(screen)
-            throttle.append(th)
-            steering.append(st)
+            controls.append([throttle, steering])
 
             # save the data every 30 iterations
             if len(training_img) % 30 == 0:
-                threading.Thread(target=save, args=(training_img, throttle, steering)).start()
+                threading.Thread(target=save, args=(training_img, controls)).start()
                 training_img = []
-                throttle = []
-                steering = []
+                controls = []
 
             time.sleep(0.02)  # in order to slow down fps
             # print('Main loop took {} seconds'.format(time.time() - last_time))
@@ -119,7 +114,7 @@ def main():
         elif 'Z' in keys:
             close = True
             print('Saving data and closing the program.')
-            save(training_img, throttle, steering)
+            save(training_img, controls)
 
     data_file.close()
 

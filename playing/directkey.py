@@ -3,7 +3,7 @@
 # http://www.gamespp.com/directx/directInputKeyboardScanCodes.html
 
 """
-Module for sending key-pressing signals to the game.
+Module for sending keyboard key-pressing signals to the game.
 """
 
 import ctypes
