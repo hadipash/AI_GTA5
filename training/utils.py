@@ -1,5 +1,6 @@
 # This code based on Siraj Raval's code (https://github.com/llSourcell/How_to_simulate_a_self_driving_car)
 
+import math
 import os
 
 import cv2
@@ -67,7 +68,7 @@ def random_flip(image, steering_angle):
     Randomly flip the image left <-> right, and adjust the steering angle.
     """
     if np.random.rand() < 0.5:
-        image = cv2.flip(image, 1)  # TODO: check the flag
+        image = cv2.flip(image, 1)
         steering_angle = -steering_angle
     return image, steering_angle
 
@@ -78,9 +79,25 @@ def random_translate(image, steering_angle, range_x, range_y):
     """
     trans_x = range_x * (np.random.rand() - 0.5)
     trans_y = range_y * (np.random.rand() - 0.5)
-    # steering_angle += trans_x * 0.002
+
+    # adjusting steering angle
+    t_x = trans_x / 25
+    if t_x > 0:
+        t_x = math.ceil(t_x)
+        if t_x > 2:
+            steering_angle += (t_x - 2)
+            if steering_angle > 10:
+                steering_angle = 10
+    else:
+        t_x = math.floor(t_x)
+        if t_x < -2:
+            steering_angle += (t_x + 2)
+            if steering_angle < -10:
+                steering_angle = -10
+
     trans_m = np.float32([[1, 0, trans_x], [0, 1, trans_y]])
     height, width = image.shape[:2]
+    # apply an affine transformation to an image
     image = cv2.warpAffine(image, trans_m, (width, height))
     return image, steering_angle
 
@@ -124,7 +141,7 @@ def random_brightness(image):
     return cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
 
 
-def augment(data_dir, image, steering_angle, range_x=100, range_y=10):
+def augment(data_dir, image, steering_angle, range_x=250, range_y=25):
     """
     Generate an augmented image and adjust steering angle.
     (The steering angle is associated with the center image)

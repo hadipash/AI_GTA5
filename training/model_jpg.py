@@ -30,6 +30,10 @@ from training.utils import INPUT_SHAPE, batch_generator
 # for debugging, allows for reproducible (deterministic) results
 np.random.seed(0)
 
+# length of training and validation sets
+len_train = 0
+len_valid = 0
+
 
 def load_data(args):
     """
@@ -47,6 +51,10 @@ def load_data(args):
     # now we can split the data into a training (80), testing(20), and validation set
     # thanks scikit-learn
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=args.test_size, random_state=0)
+
+    global len_train, len_valid
+    len_train = len(X_train)
+    len_valid = len(X_valid)
 
     return X_train, X_valid, y_train, y_valid
 
@@ -120,11 +128,11 @@ def train_model(model, args, X_train, X_valid, y_train, y_valid):
     # parallel to training your model on GPU.
     # so we reshape our data into their appropriate batches and train our model simultaneously
     model.fit_generator(batch_generator(path, X_train, y_train, args.batch_size, True),
-                        args.steps_per_epoch / args.batch_size,
-                        args.nb_epoch,
+                        steps_per_epoch=len_train / args.batch_size,
+                        epochs=args.nb_epoch,
                         max_queue_size=1,
                         validation_data=batch_generator(path, X_valid, y_valid, args.batch_size, False),
-                        validation_steps=(len(X_valid) / args.batch_size),
+                        validation_steps=len_valid / args.batch_size,
                         callbacks=[checkpoint],
                         verbose=1)
 
@@ -148,8 +156,7 @@ def main():
     parser.add_argument('-t', help='test size fraction', dest='test_size', type=float, default=0.2)
     parser.add_argument('-k', help='drop out probability', dest='keep_prob', type=float, default=0.5)
     parser.add_argument('-n', help='number of epochs', dest='nb_epoch', type=int, default=10)
-    parser.add_argument('-s', help='steps per epoch', dest='steps_per_epoch', type=int, default=20000)
-    parser.add_argument('-b', help='batch size', dest='batch_size', type=int, default=40)
+    parser.add_argument('-b', help='batch size', dest='batch_size', type=int, default=100)
     parser.add_argument('-o', help='save best models only', dest='save_best_only', type=s2b, default='true')
     parser.add_argument('-l', help='learning rate', dest='learning_rate', type=float, default=1.0e-4)
     args = parser.parse_args()
