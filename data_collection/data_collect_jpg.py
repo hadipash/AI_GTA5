@@ -9,6 +9,7 @@ import os
 import re
 import threading
 import time
+import winsound
 
 import cv2
 
@@ -52,6 +53,7 @@ def main():
     gamepad.open()
 
     # last_time = time.time()  # to measure the number of frames
+    alert_time = time.time()  # to signal about exceeding speed limit
     close = False  # to exit execution
     pause = True  # to pause execution
     training_data = []  # list for storing training data
@@ -65,6 +67,10 @@ def main():
             screen, speed, direction = img_process("Grand Theft Auto V")
 
             training_data.append([screen, throttle, steering, speed, direction])
+
+            if speed > 60 and time.time() - alert_time > 1:
+                winsound.PlaySound('alert.wav', winsound.SND_ASYNC)
+                alert_time = time.time()
 
             # save the data every 500 iterations
             if len(training_data) % 500 == 0:

@@ -7,6 +7,7 @@ for further trainings of NN.
 import os
 import threading
 import time
+import winsound
 
 import h5py
 
@@ -47,7 +48,8 @@ def main():
     gamepad = Gamepad()
     gamepad.open()
 
-    # last_time = time.time()     # to measure the number of frames
+    # last_time = time.time()   # to measure the number of frames
+    alert_time = time.time()  # to signal about exceeding speed limit
     close = False  # to exit execution
     pause = True  # to pause execution
     training_img = []  # lists for storing training data
@@ -65,6 +67,10 @@ def main():
             training_img.append(screen)
             controls.append([throttle, steering])
             metrics.append([speed, direction])
+
+            if speed > 60 and time.time() - alert_time > 1:
+                winsound.PlaySound('alert.wav', winsound.SND_ASYNC)
+                alert_time = time.time()
 
             # save the data every 30 iterations
             if len(training_img) % 30 == 0:
