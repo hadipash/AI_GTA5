@@ -116,7 +116,7 @@ def img_process(winName: str = "Grand Theft Auto V"):
     num1 = predict(num1, knnDigits)
     num2 = predict(num2, knnDigits)
     num3 = predict(num3, knnDigits)
-    direct = predict(direct, knnArrows)[0][0]
+    direct = int(predict(direct, knnArrows)[0][0])
 
     speed = convert_speed(num1, num2, num3)
     image = cv2.resize(image, (320, 240))

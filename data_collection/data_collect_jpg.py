@@ -1,5 +1,3 @@
-# This code based on Harrison Kinsley's (Sentdex) code (https://github.com/Sentdex/pygta5)
-
 """
 Data collection module (saves data in CSV and JPG formats).
 Saves screen captures and pressed keys into a file
@@ -14,8 +12,8 @@ import time
 
 import cv2
 
-from data_collection.img_process import grab_screen
-from data_collection.key_cap import key_check, Gamepad
+from data_collection.gamepad_cap import Gamepad
+from data_collection.img_process import img_process
 
 lock = threading.Lock()
 
@@ -31,25 +29,6 @@ if os.path.isfile(os.path.join(path, table)):
         img_num = int(re.findall('\d+', f.readlines()[-1])[0]) + 1
 
 
-# in case of using a keyboard
-def keys_to_output(keys):
-    # initial values: no key pressed
-    throttle = 0
-    steering = 0
-
-    if 'W' in keys:
-        throttle = 1
-    elif 'S' in keys:
-        throttle = -1
-
-    if 'A' in keys:
-        steering = -1
-    elif 'D' in keys:
-        steering = 1
-
-    return throttle, steering
-
-
 def save(data):
     global img_num
 
@@ -60,7 +39,7 @@ def save(data):
 
             for td in data:
                 # write in csv: image_name, throttle, steering
-                writer.writerow([img.format(img_num), td[1], td[2]])
+                writer.writerow([img.format(img_num), td[1], td[2], td[3], td[4]])
                 # write captures in files
                 cv2.imwrite(img_path.format(img_num), td[0])
                 img_num += 1
@@ -68,31 +47,24 @@ def save(data):
 
 
 def main():
-    # TODO: add speed and direction into input data
-
     # initialize gamepad
     gamepad = Gamepad()
     gamepad.open()
 
-    # countdown for having time to open GTA V window
-    for i in list(range(5))[::-1]:
-        print(i + 1)
-        time.sleep(1)
-    print("Start!")
-
     # last_time = time.time()  # to measure the number of frames
     close = False  # to exit execution
-    pause = False  # to pause execution
+    pause = True  # to pause execution
     training_data = []  # list for storing training data
 
+    print("Press RB on your gamepad to start recording")
     while not close:
         while not pause:
-            screen = cv2.resize(grab_screen("Grand Theft Auto V"), (320, 240))
-            # read throttle and steering values from the keyboard
-            # throttle, steering = keys_to_output(key_check())
             # read throttle and steering values from the gamepad
             throttle, steering = gamepad.get_state()
-            training_data.append([screen, throttle, steering])
+            # get screen, speed and direction
+            screen, speed, direction = img_process("Grand Theft Auto V")
+
+            training_data.append([screen, throttle, steering, speed, direction])
 
             # save the data every 500 iterations
             if len(training_data) % 500 == 0:
@@ -103,20 +75,17 @@ def main():
             # print('Main loop took {} seconds'.format(time.time() - last_time))
             # last_time = time.time()
 
-            keys = key_check()
-            if 'T' in keys:
-                gamepad.close()
+            if gamepad.get_RB():
                 pause = True
-                print('Paused. To exit the program press Z.')
+                print('Paused. To exit the program press LB.')
                 time.sleep(0.5)
 
-        keys = key_check()
-        if 'T' in keys:
-            gamepad.open()
+        if gamepad.get_RB():
             pause = False
             print('Unpaused')
             time.sleep(1)
-        elif 'Z' in keys:
+        elif gamepad.get_LB():
+            gamepad.close()
             close = True
             print('Saving data and closing the program.')
             save(training_data)
