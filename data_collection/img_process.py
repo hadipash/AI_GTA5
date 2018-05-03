@@ -2,7 +2,7 @@
 # Done by Frannecklp
 
 """
-
+Module for preprocessing screen captures
 """
 
 import win32gui
@@ -13,7 +13,20 @@ import numpy as np
 import win32con
 
 
-def grab_screen(winName: str = "Grand Theft Auto V"):
+def initKNN(fname):
+    knn = cv2.ml.KNearest_create()
+    with np.load(fname) as data:
+        train = data['train']
+        train_labels = data['train_labels']
+    knn.train(train, cv2.ml.ROW_SAMPLE, train_labels)
+    return knn
+
+
+knnDigits = initKNN('digit.npz')
+knnArrows = initKNN('arrows.npz')
+
+
+def grab_screen(winName):
     desktop = win32gui.GetDesktopWindow()
 
     # get area by a window name
@@ -60,3 +73,54 @@ def grab_screen(winName: str = "Grand Theft Auto V"):
     win32gui.DeleteObject(bmp.GetHandle())
 
     return cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+
+
+def predict(img, knn):
+    ret, result, neighbours, dist = knn.findNearest(img, k=1)
+    return result
+
+
+def preprocess(img, t_value, size):
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    ret, thr = cv2.threshold(gray, t_value, 255, cv2.THRESH_BINARY)
+    return thr.reshape(-1, size).astype(np.float32)
+
+
+def convert_speed(num1, num2, num3):
+    hundreds = 1
+    tens = 1
+    speed = 0
+
+    if num3[0][0] != 11:
+        hundreds = 10
+        tens = 10
+        speed += int(num3[0][0])
+    if num2[0][0] != 11:
+        speed += tens * int(num2[0][0])
+        hundreds = tens * 10
+    if num1[0][0] != 11:
+        speed += hundreds * int(num1[0][0])
+
+    return speed
+
+
+def img_process(winName: str = "Grand Theft Auto V"):
+    image = grab_screen(winName)
+
+    # three fields for numbers
+    num1 = preprocess(image[572:582, 680:689], 180, 90)
+    num2 = preprocess(image[572:582, 688:697], 180, 90)
+    num3 = preprocess(image[572:582, 695:704], 180, 90)
+    # one field for direction arrows
+    direct = preprocess(image[566:577, 17:28], 170, 121)
+
+    # predict numbers and directions
+    num1 = predict(num1, knnDigits)
+    num2 = predict(num2, knnDigits)
+    num3 = predict(num3, knnDigits)
+    direct = predict(direct, knnArrows)[0][0]
+
+    speed = convert_speed(num1, num2, num3)
+    image = cv2.resize(image, (320, 240))
+
+    return image, speed, direct

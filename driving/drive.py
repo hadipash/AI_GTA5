@@ -12,12 +12,14 @@ import numpy as np
 # load our saved model
 from keras.models import load_model
 
+from data_collection.img_process import grab_screen
 # helper classes
 from data_collection.keycap import key_check
-from data_collection.screencap import grab_screen
 # gamepad axes limits and gamepad module
 from driving.gamepad import AXIS_MIN, AXIS_MAX, TRIGGER_MAX, XInputDevice
 from training.utils import preprocess
+
+gamepad = None
 
 # init the model
 model = None
@@ -27,8 +29,6 @@ path = "..\\training"
 SCALE_AXIS_MIN = AXIS_MIN / -10
 SCALE_AXIS_MAX = AXIS_MAX / 10
 SCALE_TRIGGER = TRIGGER_MAX / 10
-
-gamepad = None
 
 
 def set_gamepad(controls):

@@ -13,8 +13,8 @@ import time
 import cv2
 import h5py
 
+from data_collection.img_process import grab_screen
 from data_collection.keycap import key_check, Gamepad
-from data_collection.screencap import grab_screen
 
 lock = threading.Lock()
 
@@ -90,6 +90,7 @@ def main():
 
             # save the data every 30 iterations
             if len(training_img) % 30 == 0:
+                # print("-" * 30 + "Saving" + "-" * 30)
                 threading.Thread(target=save, args=(training_img, controls)).start()
                 training_img = []
                 controls = []

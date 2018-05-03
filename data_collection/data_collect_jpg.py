@@ -14,8 +14,8 @@ import time
 
 import cv2
 
+from data_collection.img_process import grab_screen
 from data_collection.keycap import key_check, Gamepad
-from data_collection.screencap import grab_screen
 
 lock = threading.Lock()
 
