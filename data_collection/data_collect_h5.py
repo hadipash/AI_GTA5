@@ -14,7 +14,7 @@ import cv2
 import h5py
 
 from data_collection.img_process import grab_screen
-from data_collection.keycap import key_check, Gamepad
+from data_collection.key_cap import key_check, Gamepad
 
 lock = threading.Lock()
 

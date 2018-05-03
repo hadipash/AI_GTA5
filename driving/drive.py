@@ -14,7 +14,7 @@ from keras.models import load_model
 
 from data_collection.img_process import grab_screen
 # helper classes
-from data_collection.keycap import key_check
+from data_collection.key_cap import key_check
 # gamepad axes limits and gamepad module
 from driving.gamepad import AXIS_MIN, AXIS_MAX, TRIGGER_MAX, XInputDevice
 from training.utils import preprocess

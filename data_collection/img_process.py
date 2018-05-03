@@ -1,6 +1,3 @@
-# This code based on Harrison Kinsley's (Sentdex) code (https://github.com/Sentdex/pygta5)
-# Done by Frannecklp
-
 """
 Module for preprocessing screen captures
 """
@@ -26,6 +23,7 @@ knnDigits = initKNN('digit.npz')
 knnArrows = initKNN('arrows.npz')
 
 
+# Done by Frannecklp
 def grab_screen(winName):
     desktop = win32gui.GetDesktopWindow()
 

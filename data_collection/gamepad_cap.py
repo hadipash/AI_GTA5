@@ -1,29 +1,10 @@
-# This code based on Harrison Kinsley's (Sentdex) code (https://github.com/Sentdex/pygta5)
-# Citation: Box Of Hats (https://github.com/Box-Of-Hats)
-
 """
-Module for reading keys from keyboard or information from an Xbox gamepad
+Module for reading information from an Xbox gamepad
 """
 
 import threading
-import win32api as wapi
 
 from inputs import get_gamepad
-
-# Keyboard part
-keyList = ["\b"]
- 
-for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ 123456789,.'£$/\\":
-    keyList.append(char)
-
-
-def key_check():
-    keys = []
-    for key in keyList:
-        if wapi.GetAsyncKeyState(ord(key)):
-            keys.append(key)
-    return keys
-
 
 # Gamepad part
 AXIS_MAX = 32767
@@ -43,6 +24,8 @@ class Gamepad:
     def __init__(self):
         self.x_axis = 0
         self.y_axis = 0
+        self.RB = 0
+        self.LB = 0
         self.stop = False
 
     def open(self):
@@ -59,6 +42,10 @@ class Gamepad:
                     self.y_axis = event.state
                 elif event.code == "ABS_Z":
                     self.y_axis = -event.state
+                elif event.code == "BTN_TR":
+                    self.RB = event.state
+                elif event.code == "BTN_TL":
+                    self.LB = event.state
                 else:
                     pass  # we're not interested in the remain signals
 
@@ -83,6 +70,12 @@ class Gamepad:
 
         # return throttle and then steering
         return yAxis, xAxis
+
+    def get_RB(self):
+        return self.RB
+
+    def get_LB(self):
+        return self.LB
 
     def close(self):
         self.stop = True
