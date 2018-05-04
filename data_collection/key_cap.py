@@ -7,7 +7,7 @@ Module for reading keys from a keyboard
 import win32api as wapi
 
 keyList = ["\b"]
-for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ 123456789,.'£$/\\":
+for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789,.'£$/\\":
     keyList.append(char)
 
 

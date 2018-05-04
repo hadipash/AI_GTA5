@@ -19,12 +19,12 @@ def initKNN(fname):
     return knn
 
 
-knnDigits = initKNN('digit.npz')
-knnArrows = initKNN('arrows.npz')
+knnDigits = initKNN('..\data_collection\digit.npz')
+knnArrows = initKNN('..\data_collection\\arrows.npz')
 
 
 # Done by Frannecklp
-def grab_screen(winName):
+def grab_screen(winName: str = "Grand Theft Auto V"):
     desktop = win32gui.GetDesktopWindow()
 
     # get area by a window name
