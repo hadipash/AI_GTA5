@@ -19,7 +19,7 @@ from data_collection.img_process import img_process
 lock = threading.Lock()
 
 # files to save training data
-path = "E:\Graduation_Project"
+path = "F:\Graduation_Project"
 img = "img\img{}.jpg"
 img_path = os.path.join(path, "img\img{}.jpg")
 table = 'training_data.csv'

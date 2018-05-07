@@ -106,13 +106,21 @@ def convert_speed(num1, num2, num3):
 def img_process(winName: str = "Grand Theft Auto V"):
     image = grab_screen(winName)
 
-    numbers = preprocess(image[573:581, 683:702, :])
+    # Ji Hyun's computer
+    numbers = preprocess(image[567:575, 683:702, :])
+    # Rustam's computer
+    # numbers = preprocess(image[573:581, 683:702, :])
+
     # three fields for numbers
     num1 = predict(numbers[:, :5].reshape(-1, 40).astype(np.float32), knnDigits)
     num2 = predict(numbers[:, 7:12].reshape(-1, 40).astype(np.float32), knnDigits)
     num3 = predict(numbers[:, -5:].reshape(-1, 40).astype(np.float32), knnDigits)
+
     # one field for direction arrows
-    direct = preprocess(image[567:576, 18:28, :]).reshape(-1, 90).astype(np.float32)
+    # Ji Hyun's computer
+    direct = preprocess(image[561:570, 18:28, :]).reshape(-1, 90).astype(np.float32)
+    # Rustam's computer
+    # direct = preprocess(image[567:576, 18:28, :]).reshape(-1, 90).astype(np.float32)
     direct = int(predict(direct, knnArrows)[0][0])
 
     speed = convert_speed(num1, num2, num3)
