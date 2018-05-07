@@ -80,7 +80,7 @@ def main():
                 controls = []
                 metrics = []
 
-            time.sleep(0.02)  # in order to slow down fps
+            time.sleep(0.015)  # in order to slow down fps
             # print('Main loop took {} seconds'.format(time.time() - last_time))
             # last_time = time.time()
 
