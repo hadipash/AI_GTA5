@@ -69,7 +69,7 @@ def main():
             training_data.append([screen, throttle, steering, speed, direction])
 
             if speed > 60 and time.time() - alert_time > 1:
-                winsound.PlaySound('alert.wav', winsound.SND_ASYNC)
+                winsound.PlaySound('.\\resources\\alert.wav', winsound.SND_ASYNC)
                 alert_time = time.time()
 
             # save the data every 500 iterations

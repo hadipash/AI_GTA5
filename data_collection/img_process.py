@@ -10,17 +10,18 @@ import numpy as np
 import win32con
 
 
-def initKNN(fname):
+def initKNN(data, labels, shape):
     knn = cv2.ml.KNearest_create()
-    with np.load(fname) as data:
-        train = data['train']
-        train_labels = data['train_labels']
+    train = np.load(data).reshape(-1, shape).astype(np.float32)
+    train_labels = np.load(labels)
     knn.train(train, cv2.ml.ROW_SAMPLE, train_labels)
     return knn
 
 
-knnDigits = initKNN('..\data_collection\digit.npz')
-knnArrows = initKNN('..\data_collection\\arrows.npz')
+knnDigits = initKNN('..\data_collection\\resources\digits.npy',
+                    '..\data_collection\\resources\digits_labels.npy', 40)
+knnArrows = initKNN('..\data_collection\\resources\\arrows.npy',
+                    '..\data_collection\\resources\\arrows_labels.npy', 90)
 
 
 # Done by Frannecklp
@@ -78,10 +79,10 @@ def predict(img, knn):
     return result
 
 
-def preprocess(img, t_value, size):
+def preprocess(img):
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    ret, thr = cv2.threshold(gray, t_value, 255, cv2.THRESH_BINARY)
-    return thr.reshape(-1, size).astype(np.float32)
+    thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 7, -5)
+    return thr
 
 
 def convert_speed(num1, num2, num3):
@@ -89,14 +90,14 @@ def convert_speed(num1, num2, num3):
     tens = 1
     speed = 0
 
-    if num3[0][0] != 11:
+    if num3[0][0] != 10:
         hundreds = 10
         tens = 10
         speed += int(num3[0][0])
-    if num2[0][0] != 11:
+    if num2[0][0] != 10:
         speed += tens * int(num2[0][0])
         hundreds = tens * 10
-    if num1[0][0] != 11:
+    if num1[0][0] != 10:
         speed += hundreds * int(num1[0][0])
 
     return speed
@@ -105,17 +106,13 @@ def convert_speed(num1, num2, num3):
 def img_process(winName: str = "Grand Theft Auto V"):
     image = grab_screen(winName)
 
+    numbers = preprocess(image[573:581, 683:702, :])
     # three fields for numbers
-    num1 = preprocess(image[572:582, 680:689], 180, 90)
-    num2 = preprocess(image[572:582, 688:697], 180, 90)
-    num3 = preprocess(image[572:582, 695:704], 180, 90)
+    num1 = predict(numbers[:, :5].reshape(-1, 40).astype(np.float32), knnDigits)
+    num2 = predict(numbers[:, 7:12].reshape(-1, 40).astype(np.float32), knnDigits)
+    num3 = predict(numbers[:, -5:].reshape(-1, 40).astype(np.float32), knnDigits)
     # one field for direction arrows
-    direct = preprocess(image[566:577, 17:28], 170, 121)
-
-    # predict numbers and directions
-    num1 = predict(num1, knnDigits)
-    num2 = predict(num2, knnDigits)
-    num3 = predict(num3, knnDigits)
+    direct = preprocess(image[567:576, 18:28, :]).reshape(-1, 90).astype(np.float32)
     direct = int(predict(direct, knnArrows)[0][0])
 
     speed = convert_speed(num1, num2, num3)
