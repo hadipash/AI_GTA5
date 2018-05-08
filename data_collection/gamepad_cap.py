@@ -23,7 +23,8 @@ DEADZONE = 3
 class Gamepad:
     def __init__(self):
         self.x_axis = 0
-        self.y_axis = 0
+        self.y_axisP = 0
+        self.y_axisN = 0
         self.RB = 0
         self.LB = 0
         self.stop = False
@@ -39,9 +40,9 @@ class Gamepad:
                 if event.code == "ABS_X":
                     self.x_axis = event.state
                 elif event.code == "ABS_RZ":
-                    self.y_axis = event.state
+                    self.y_axisP = event.state
                 elif event.code == "ABS_Z":
-                    self.y_axis = -event.state
+                    self.y_axisN = -event.state
                 elif event.code == "BTN_TR":
                     self.RB = event.state
                 elif event.code == "BTN_TL":
@@ -51,7 +52,7 @@ class Gamepad:
 
     def get_state(self):
         xAxis = self.x_axis
-        yAxis = self.y_axis
+        yAxis = self.y_axisP if self.y_axisP > 60 else self.y_axisN
 
         # normalize x axis
         if xAxis > 0:
