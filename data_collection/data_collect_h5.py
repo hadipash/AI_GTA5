@@ -13,11 +13,12 @@ import h5py
 
 from data_collection.gamepad_cap import Gamepad
 from data_collection.img_process import img_process
+from data_collection.key_cap import key_check
 
 lock = threading.Lock()
 
 # open the data file
-path = "E:\Graduation_Project"
+path = "F:\Graduation_Project"
 data_file = None
 if os.path.isfile(os.path.join(path, "training_data.h5")):
     data_file = h5py.File(os.path.join(path, "training_data.h5"), 'a')
@@ -43,6 +44,13 @@ def save(data_img, controls, metrics):
             # print('Saving took {} seconds'.format(time.time() - last_time))
 
 
+def delete(session):
+    frames = session if session < 500 else 500
+    data_file["img"].resize((data_file["img"].shape[0] - frames), axis=0)
+    data_file["controls"].resize((data_file["controls"].shape[0] - frames), axis=0)
+    data_file["metrics"].resize((data_file["metrics"].shape[0] - frames), axis=0)
+
+
 def main():
     # initialize gamepad
     gamepad = Gamepad()
@@ -52,6 +60,7 @@ def main():
     alert_time = time.time()  # to signal about exceeding speed limit
     close = False  # to exit execution
     pause = True  # to pause execution
+    session = 0  # number of frames recorded in one session
     training_img = []  # lists for storing training data
     controls = []
     metrics = []
@@ -67,6 +76,7 @@ def main():
             training_img.append(screen)
             controls.append([throttle, steering])
             metrics.append([speed, direction])
+            session += 1
 
             if speed > 60 and time.time() - alert_time > 1:
                 winsound.PlaySound('.\\resources\\alert.wav', winsound.SND_ASYNC)
@@ -86,7 +96,23 @@ def main():
 
             if gamepad.get_RB():
                 pause = True
-                print('Paused. To exit the program press LB.')
+                print('Paused. Save the last 15 seconds?')
+
+                keys = key_check()
+                while ('Y' not in keys) and ('N' not in keys):
+                    keys = key_check()
+
+                if 'N' in keys:
+                    delete(session)
+                    training_img = []
+                    controls = []
+                    metrics = []
+                    print('Deleted.')
+                else:
+                    print('Saved.')
+
+                print('To exit the program press LB.')
+                session = 0
                 time.sleep(0.5)
 
         if gamepad.get_RB():
