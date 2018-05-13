@@ -18,12 +18,12 @@ from data_collection.key_cap import key_check
 lock = threading.Lock()
 
 # open the data file
-path = "F:\Graduation_Project"
+path = "F:\Graduation_Project\\training_data.h5"
 data_file = None
-if os.path.isfile(os.path.join(path, "training_data.h5")):
-    data_file = h5py.File(os.path.join(path, "training_data.h5"), 'a')
+if os.path.isfile(path):
+    data_file = h5py.File(path, 'a')
 else:
-    data_file = h5py.File(os.path.join(path, "training_data.h5"), 'w')
+    data_file = h5py.File(path, 'w')
     # Write data in chunks for faster writing and reading by NN
     data_file.create_dataset('img', (0, 240, 320, 3), dtype='u1',
                              maxshape=(None, 240, 320, 3), chunks=(30, 240, 320, 3))

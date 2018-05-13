@@ -1,29 +1,22 @@
 # This code based on Siraj Raval's code (https://github.com/llSourcell/How_to_simulate_a_self_driving_car)
 
 import math
-import os
 
 import cv2
-import matplotlib.image as mpimg
 import numpy as np
+import tensorflow as tf
 
 IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
 INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
-
-
-def load_image(data_dir, image_file):
-    """
-    Load RGB images from a file
-    """
-    return mpimg.imread(os.path.join(data_dir, image_file.strip()))
+RADAR_HEIGHT, RADAR_WIDTH, RADAR_CHANNELS = 36, 60, 2
+RADAR_SHAPE = (RADAR_HEIGHT, RADAR_WIDTH, RADAR_CHANNELS)
 
 
 def crop(image):
     """
     Crop the image (removing the sky at the top and the car front at the bottom)
     """
-    # TODO: check sizes
-    return image[60:-25, :, :]  # remove the sky and the car front
+    return image[90:-50, :, :]  # remove the sky and the car front
 
 
 def resize(image):
@@ -63,14 +56,15 @@ def preprocess(image):
 #     return load_image(data_dir, center), steering_angle
 
 
-def random_flip(image, steering_angle):
-    """
-    Randomly flip the image left <-> right, and adjust the steering angle.
-    """
-    if np.random.rand() < 0.5:
-        image = cv2.flip(image, 1)
-        steering_angle = -steering_angle
-    return image, steering_angle
+# flip image is performed on data augmentation stage
+# def random_flip(image, steering_angle):
+#     """
+#     Randomly flip the image left <-> right, and adjust the steering angle.
+#     """
+#     if np.random.rand() < 0.5:
+#         image = cv2.flip(image, 1)
+#         steering_angle = -steering_angle
+#     return image, steering_angle
 
 
 def random_translate(image, steering_angle, range_x, range_y):
@@ -141,40 +135,51 @@ def random_brightness(image):
     return cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
 
 
-def augment(data_dir, image, steering_angle, range_x=250, range_y=25):
+def augment(image, steering_angle, range_x=250, range_y=20):
     """
     Generate an augmented image and adjust steering angle.
     (The steering angle is associated with the center image)
     """
     # image, steering_angle = choose_image(data_dir, center, left, right, steering_angle)
-    image = load_image(data_dir, image)
-    image, steering_angle = random_flip(image, steering_angle)
+    # image, steering_angle = random_flip(image, steering_angle)
     image, steering_angle = random_translate(image, steering_angle, range_x, range_y)
     image = random_shadow(image)
     image = random_brightness(image)
     return image, steering_angle
 
 
-def batch_generator(data_dir, image_path, keys, batch_size, is_training):
+def batch_generator(data, indexes, batch_size, is_training):
     """
     Generate training image give image paths and associated steering angles
     """
-    images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
-    outputs = np.empty([batch_size, 2])
-    while True:
-        i = 0
-        for index in np.random.permutation(image_path.shape[0]):
-            camera = image_path[index]
-            steer = keys[index][1]
-            # augmentation
-            if is_training and np.random.rand() < 0.6:
-                image, steer = augment(data_dir, camera, steer)
-            else:
-                image = load_image(data_dir, camera)
-            # add the image and steering angle to the batch
-            images[i] = preprocess(image)
-            outputs[i] = [keys[index][0], steer]  # throttle and steering
-            i += 1
-            if i == batch_size:
-                break
-        yield images, outputs
+    # preprocessing on the CPU
+    with tf.device('/cpu:0'):
+        images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
+        radars = np.empty([batch_size, RADAR_HEIGHT, RADAR_WIDTH, RADAR_CHANNELS])
+        # metrics = np.empty([batch_size, 2])
+        # controls = np.empty([batch_size, 2])
+        controls = np.empty(batch_size)
+        while True:
+            i = 0
+            for index in np.random.permutation(indexes):
+                camera = data['img'][index]
+                radar = cv2.cvtColor(camera[194:230, 5:65, :], cv2.COLOR_RGB2BGR)
+                steer = data['controls'][index][1]
+
+                # augmentation
+                if is_training:
+                    prob = np.random.rand()
+                    if (abs(steer) < 0.4 and prob > 0.2) or (prob < 0.6):
+                        camera, steer = augment(camera, steer)
+
+                # add the image and steering angle to the batch
+                images[i] = preprocess(camera)
+                radars[i] = radar[:, :, 1:3]
+                # controls[i] = [data['controls'][index][0] / 10, steer / 10]  # normalized throttle and steering
+                controls[i] = steer / 10
+                # metrics[i] = data['metrics'][index]
+                i += 1
+                if i == batch_size:
+                    break
+            # yield [images, metrics], controls
+            yield [images, radars], controls

@@ -4,99 +4,49 @@
 Training module. Based on "End to End Learning for Self-Driving Cars" research paper by Nvidia.
 """
 
-# for command line arguments
 import argparse
-# for reading files
-import os
 
-import numpy as np  # matrix math
-import pandas as pd  # data analysis toolkit - create, read, update, delete datasets
-# to save our model periodically as checkpoints for loading later
+import h5py
+import numpy as np
 from keras.callbacks import ModelCheckpoint
-# what types of layers do we want our model to have?
-from keras.layers import Lambda, Conv2D, Dropout, Dense, Flatten
-# keras is a high level wrapper on top of tensorflow (machine learning library)
-# The Sequential container is a linear stack of layers
-from keras.models import Sequential
-# popular optimization strategy that uses gradient descent
+from keras.models import load_model
 from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split  # to split out training and testing data
 
 # path with training files
-from data_collection.data_collect_jpg import path, table
-# helper class to define input shape and generate training images given image paths & steering angles
-from training.utils import INPUT_SHAPE, batch_generator
+from data_collection.data_collect import path
+from training.model import build_model
+# helper class
+from training.utils import batch_generator
 
 # for debugging, allows for reproducible (deterministic) results
 np.random.seed(0)
-
-# length of training and validation sets
-len_train = 0
-len_valid = 0
 
 
 def load_data(args):
     """
     Load training data and split it into training and validation set
     """
-    # reads CSV file into a single dataframe variable
-    data_df = pd.read_csv(os.path.join(path, table), names=['camera', 'throttle', 'steering'])
+    data = h5py.File(path, 'r')
+    # list of all possible indexes
+    indexes = list(range(data['img'].shape[0]))
+    # split the data into a training (80), testing(20), and validation set
+    indexes_train, indexes_valid = train_test_split(indexes, test_size=args.test_size, random_state=0)
 
-    # yay dataframes, we can select rows and columns by their names
-    # we'll store the camera images as our input data
-    X = data_df['camera'].values
-    # and our steering commands as our output data
-    y = data_df[['throttle', 'steering']].values
-
-    # now we can split the data into a training (80), testing(20), and validation set
-    # thanks scikit-learn
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=args.test_size, random_state=0)
-
-    global len_train, len_valid
-    len_train = len(X_train)
-    len_valid = len(X_valid)
-
-    return X_train, X_valid, y_train, y_valid
+    return data, indexes_train, indexes_valid
 
 
-def build_model(args):
+def load_weights(model):
     """
-    NVIDIA model used
-    Image normalization to avoid saturation and make gradients work better.
-    Convolution: 5x5, filter: 24, strides: 2x2, activation: ELU
-    Convolution: 5x5, filter: 36, strides: 2x2, activation: ELU
-    Convolution: 5x5, filter: 48, strides: 2x2, activation: ELU
-    Convolution: 3x3, filter: 64, strides: 1x1, activation: ELU
-    Convolution: 3x3, filter: 64, strides: 1x1, activation: ELU
-    Drop out (0.5)
-    Fully connected: neurons: 100, activation: ELU
-    Fully connected: neurons: 50, activation: ELU
-    Fully connected: neurons: 10, activation: ELU
-    Fully connected: neurons: 1 (output)
-    # the convolution layers are meant to handle feature engineering
-    the fully connected layer for predicting the steering angle.
-    dropout avoids overfitting
-    ELU(Exponential linear unit) function takes care of the Vanishing gradient problem.
+    Load weights from previously trained model
     """
-    model = Sequential()
-    model.add(Lambda(lambda x: x / 127.5 - 1.0, input_shape=INPUT_SHAPE))
-    model.add(Conv2D(24, (5, 5), activation='elu', strides=(2, 2)))
-    model.add(Conv2D(36, (5, 5), activation='elu', strides=(2, 2)))
-    model.add(Conv2D(48, (5, 5), activation='elu', strides=(2, 2)))
-    model.add(Conv2D(64, (3, 3), activation='elu'))
-    model.add(Conv2D(64, (3, 3), activation='elu'))
-    model.add(Dropout(args.keep_prob))
-    model.add(Flatten())
-    model.add(Dense(100, activation='elu'))
-    model.add(Dense(50, activation='elu'))
-    model.add(Dense(10, activation='elu'))
-    model.add(Dense(2))
-    model.summary()
+    prev_model = load_model("..\\training\model-073.h5")
+    model.set_weights(prev_model.get_weights())
 
     return model
 
 
-def train_model(model, args, X_train, X_valid, y_train, y_valid):
+def train_model(model, args, data, indexes_train, indexes_valid):
     """
     Train the model
     """
@@ -127,12 +77,12 @@ def train_model(model, args, X_train, X_valid, y_train, y_valid):
     # For instance, this allows you to do real-time data augmentation on images on CPU in
     # parallel to training your model on GPU.
     # so we reshape our data into their appropriate batches and train our model simultaneously
-    model.fit_generator(batch_generator(path, X_train, y_train, args.batch_size, True),
-                        steps_per_epoch=len_train / args.batch_size,
+    model.fit_generator(batch_generator(data, indexes_train, args.batch_size, True),
+                        steps_per_epoch=len(indexes_train) / args.batch_size,
                         epochs=args.nb_epoch,
                         max_queue_size=1,
-                        validation_data=batch_generator(path, X_valid, y_valid, args.batch_size, False),
-                        validation_steps=len_valid / args.batch_size,
+                        validation_data=batch_generator(data, indexes_valid, args.batch_size, False),
+                        validation_steps=len(indexes_valid) / args.batch_size,
                         callbacks=[checkpoint],
                         verbose=1)
 
@@ -155,8 +105,8 @@ def main():
     parser.add_argument('-d', help='data directory', dest='data_dir', type=str, default=path)
     parser.add_argument('-t', help='test size fraction', dest='test_size', type=float, default=0.2)
     parser.add_argument('-k', help='drop out probability', dest='keep_prob', type=float, default=0.5)
-    parser.add_argument('-n', help='number of epochs', dest='nb_epoch', type=int, default=10)
-    parser.add_argument('-b', help='batch size', dest='batch_size', type=int, default=100)
+    parser.add_argument('-n', help='number of epochs', dest='nb_epoch', type=int, default=100)
+    parser.add_argument('-b', help='batch size', dest='batch_size', type=int, default=500)
     parser.add_argument('-o', help='save best models only', dest='save_best_only', type=s2b, default='true')
     parser.add_argument('-l', help='learning rate', dest='learning_rate', type=float, default=1.0e-4)
     args = parser.parse_args()
@@ -173,6 +123,8 @@ def main():
     data = load_data(args)
     # build model
     model = build_model(args)
+    # load previous weights
+    model = load_weights(model)
     # train model on data, it saves as model.h5
     train_model(model, args, *data)
 
