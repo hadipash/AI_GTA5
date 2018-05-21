@@ -109,15 +109,22 @@ def light_recog(frame, tl, br):
 
 
 def distance_warning(frame, tl, br, confidence):
-    mid_x = (br[1] + tl[1]) / 2
-    mid_y = (tl[0] + br[0]) / 2
+    mid_x = (br[0] + tl[0]) / 2
+    mid_y = (tl[1] + br[1]) / 2
     apx_distance = round((1 - ((br[0] / 800) - (tl[0] / 800))) ** 4, 1)
-    frame = cv2.putText(frame, '{}'.format(apx_distance), br, cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
+    #frame = cv2.putText(frame, '{}'.format(apx_distance), br, cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    frame = cv2.putText(frame, '{}'.format(apx_distance), (int(mid_x),int(mid_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
     if apx_distance <= 0.3:
-        if confidence >= 0.5:
-            if (((mid_x / 800) > 0.3) and ((mid_x / 800) < 0.7)):
-                cv2.putText(frame, 'WARNING!!!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+        if confidence >= 0.3:
+            if (((mid_y / 800) > 0.3) and ((mid_y/ 800) < 0.9)):
+                cv2.putText(frame[tl[1]:br[1], tl[0]:br[0]], 'WARNING!!!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+
+    if apx_distance >= 0.3:
+        if ((br[1]-tl[1]) > 300):
+            cv2.putText(frame[tl[1]:br[1], tl[0]:br[0]], 'WARNING!!!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                        (0, 0, 255), 3)
 
 
 while (True):
