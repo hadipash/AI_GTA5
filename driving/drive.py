@@ -46,6 +46,12 @@ def set_gamepad(controls):
     gamepad.SetAxis('X', axis)
 
 
+def stop():
+    gamepad.SetTrigger('L', 0)
+    gamepad.SetTrigger('R', 0)
+    gamepad.SetAxis('X', 0)
+
+
 def drive(model):
     global gamepad
     gamepad = XInputDevice(1)
@@ -54,6 +60,7 @@ def drive(model):
     # last_time = time.time()  # to measure the number of frames
     close = False  # to exit execution
     pause = True  # to pause execution
+    throttle = 0
 
     print("Press T to start driving")
     while not close:
@@ -66,16 +73,23 @@ def drive(model):
             # predict steering angle for the image
             controls = model.predict([np.array([image]), np.array([radar])], batch_size=1)
 
-            if speed < 60:
+            if speed < 35:
                 throttle = 0.4
                 controls = [[controls[0][0], throttle]]
-            else:
+            elif speed > 40:
                 throttle = 0.0
+                controls = [[controls[0][0], throttle]]
+            else:
                 controls = [[controls[0][0], throttle]]
 
             # set the gamepad values
             set_gamepad(controls)
             # print("Steering: {0:.2f}".format(controls[0][0]))
+
+            if direct == 6:
+                print("Arrived at destination.")
+                stop()
+                pause = True
 
             # print('Main loop took {} seconds'.format(time.time() - last_time))
             # last_time = time.time()
@@ -84,9 +98,7 @@ def drive(model):
             if 'T' in keys:
                 pause = True
                 # release gamepad keys
-                gamepad.SetTrigger('L', 0)
-                gamepad.SetTrigger('R', 0)
-                gamepad.SetAxis('X', 0)
+                stop()
                 print('Paused. To exit the program press Z.')
                 time.sleep(0.5)
 
@@ -103,8 +115,7 @@ def drive(model):
 
 def main():
     # load model
-    model_num = int(input('Input a model number: '))
-    location = os.path.join(model_path, 'model-{0:03d}.h5'.format(model_num))
+    location = os.path.join(model_path, 'base_model.h5')
     model = load_model(location)
     # control a car
     drive(model)

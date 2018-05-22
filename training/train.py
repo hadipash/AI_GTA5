@@ -40,7 +40,7 @@ def load_weights(model):
     """
     Load weights from previously trained model
     """
-    prev_model = load_model("..\\training\model-073.h5")
+    prev_model = load_model("..\\training\\base_model.h5")
     model.set_weights(prev_model.get_weights())
 
     return model

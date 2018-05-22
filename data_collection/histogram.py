@@ -1,5 +1,5 @@
 """
-Histogram of turns
+Histogram of turns (for future balancing of data)
 """
 
 import h5py

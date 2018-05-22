@@ -16,7 +16,7 @@ def crop(image):
     """
     Crop the image (removing the sky at the top and the car front at the bottom)
     """
-    return image[90:-50, :, :]  # remove the sky and the car front
+    return image[90:-50, :, :]
 
 
 def resize(image):
@@ -56,7 +56,7 @@ def preprocess(image):
 #     return load_image(data_dir, center), steering_angle
 
 
-# flip image is performed on data augmentation stage
+# flip image causes car riding on the opposite direction lane
 # def random_flip(image, steering_angle):
 #     """
 #     Randomly flip the image left <-> right, and adjust the steering angle.
