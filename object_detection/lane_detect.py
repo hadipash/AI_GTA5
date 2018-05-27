@@ -5,6 +5,8 @@ import numpy as np
 
 from data_collection.img_process import grab_screen
 
+lane_x = [[], []]
+
 
 def crop(image):
     """
@@ -18,10 +20,13 @@ def grayscale(img):
     Applies the Grayscale transform
     This will return an image with only one color channel
     """
-    return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img1 = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img2 = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)[:, :, 2:3]
+
+    return weighted_img(img1, img2, 1, 0.6)
 
 
-def canny(img, low_threshold=150, high_threshold=200):
+def canny(img, low_threshold=100, high_threshold=300):
     """
     Applies the Canny transform
     """
@@ -32,7 +37,7 @@ def gaussian_blur(img, kernel_size):
     """
     Applies a Gaussian Noise kernel
     """
-    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 50)
 
 
 def region_of_interest(img, vertices):
@@ -86,7 +91,7 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
     if lines is not None:
         for line in lines:
             for x1, y1, x2, y2 in line:
-                slope = (y2 - y1) / (x2 - x1)  # <-- Calculating the slope.
+                slope = (y2 - y1) / (x2 - x1) if x1 != x2 else 0  # <-- Calculating the slope.
                 if math.fabs(slope) < 0.3:  # <-- Only consider extreme slope
                     continue
                 if slope <= 0:  # <-- If the slope is negative, left group.
@@ -96,10 +101,11 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
                     right_line_x.extend([x1, x2])
                     right_line_y.extend([y1, y2])
 
-        min_y = 90
+        min_y = 80
         max_y = 270
 
-        lane_lines = []
+        new_lane = []
+        offset = 4
         if left_line_x:
             poly_left = np.poly1d(np.polyfit(
                 left_line_y,
@@ -107,7 +113,24 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
                 deg=1
             ))
 
-            lane_lines.append([int(poly_left(max_y)), max_y, int(poly_left(min_y)), min_y])
+            if lane_x[0]:
+                # calculate x1
+                x1 = int(poly_left(max_y))
+                if abs(x1 - lane_x[0][0]) > offset:
+                    x1 = lane_x[0][0] - offset if lane_x[0][0] > x1 else lane_x[0][0] + offset
+                # calculate x2
+                x2 = int(poly_left(min_y))
+                if abs(x2 - lane_x[0][1]) > offset:
+                    x2 = lane_x[0][1] - offset if lane_x[0][1] > x2 else lane_x[0][1] + offset
+            else:
+                x1 = int(poly_left(max_y))
+                x2 = int(poly_left(min_y))
+
+            lane_x[0] = [x1, x2]
+            new_lane.append([x1, max_y, x2, min_y])
+        elif lane_x[0]:
+            new_lane.append([lane_x[0][0], max_y, lane_x[0][1], min_y])
+            lane_x[0] = []
 
         if right_line_x:
             poly_right = np.poly1d(np.polyfit(
@@ -116,21 +139,38 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
                 deg=1
             ))
 
-            lane_lines.append([int(poly_right(max_y)), max_y, int(poly_right(min_y)), min_y])
-        lane_lines = [lane_lines]
+            if lane_x[1]:
+                # calculate x1
+                x1 = int(poly_right(max_y))
+                if abs(x1 - lane_x[1][0]) > offset:
+                    x1 = lane_x[1][0] - offset if lane_x[1][0] > x1 else lane_x[1][0] + offset
+                # calculate x2
+                x2 = int(poly_right(min_y))
+                if abs(x2 - lane_x[1][1]) > offset:
+                    x2 = lane_x[1][1] - offset if lane_x[1][1] > x2 else lane_x[1][1] + offset
+            else:
+                x1 = int(poly_right(max_y))
+                x2 = int(poly_right(min_y))
 
-        for line in lane_lines:
+            lane_x[1] = [x1, x2]
+            new_lane.append([x1, max_y, x2, min_y])
+        elif lane_x[1]:
+            new_lane.append([lane_x[1][0], max_y, lane_x[1][1], min_y])
+            lane_x[1] = []
+
+        new_lane = [new_lane]
+        for line in new_lane:
             for x1, y1, x2, y2 in line:
                 cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness)
 
-        if len(lane_lines[0]) == 2:
+        if len(new_lane[0]) == 2:
             lane_color = [60, 80, 0]
             offset_from_lane_edge = 5
-            for x1, y1, x2, y2 in [lane_lines[0][0]]:
+            for x1, y1, x2, y2 in [new_lane[0][0]]:
                 p1 = [x1, y1]
                 p2 = [x2 + offset_from_lane_edge, y2]
 
-            for x1, y1, x2, y2 in [lane_lines[0][1]]:
+            for x1, y1, x2, y2 in [new_lane[0][1]]:
                 p3 = [x2 - offset_from_lane_edge, y2]
                 p4 = [x1, y1]
 
@@ -171,22 +211,17 @@ def main():
     while True:
         # 0. Crop the image
         original_img = crop(grab_screen())
-
         # 1. convert to gray
         image = grayscale(original_img)
-        image = gaussian_blur(image, 3)
-        # image = cv2.equalizeHist(image)
-
-        # 2. canny
-        image = canny(image)
-
-        # 3. ROI
+        # 2. apply gaussian filter
+        image = gaussian_blur(image, 7)
+        # 3. canny
+        image = canny(image, 50, 100)
+        # 4. ROI
         image = region_of_interest(image, np.array([[(0, 270), (0, 100), (400, 0), (800, 100), (800, 270)]], np.int32))
-
-        # 4. Hough lines
+        # 5. Hough lines
         lines = hough_lines(image)
-
-        # 6. weighted image
+        # 6. Place lane detection output on the original image
         image = weighted_img(lines, original_img)
 
         cv2.imshow("Frame", image)
