@@ -37,7 +37,7 @@ def gaussian_blur(img, kernel_size):
     """
     Applies a Gaussian Noise kernel
     """
-    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 50)
+    return cv2.GaussianBlur(img, (kernel_size, kernel_size), sigmaX=30, sigmaY=30)
 
 
 def region_of_interest(img, vertices):
@@ -178,7 +178,7 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
             cv2.fillPoly(img, [polygon_points], lane_color)
 
 
-def hough_lines(img, rho=6, theta=np.pi / 60, threshold=160, min_line_len=30, max_line_gap=20):
+def hough_lines(img, rho=6, theta=np.pi / 120, threshold=160, min_line_len=60, max_line_gap=10):
     """
     `img` should be the output of a Canny transform.
 
@@ -218,7 +218,7 @@ def main():
         # 3. canny
         image = canny(image, 50, 100)
         # 4. ROI
-        image = region_of_interest(image, np.array([[(0, 270), (0, 100), (400, 0), (800, 100), (800, 270)]], np.int32))
+        image = region_of_interest(image, np.array([[(0, 270), (0, 150), (400, 0), (800, 150), (800, 270)]], np.int32))
         # 5. Hough lines
         lines = hough_lines(image)
         # 6. Place lane detection output on the original image
