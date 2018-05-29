@@ -158,6 +158,7 @@ def batch_generator(data, indexes, batch_size, is_training):
         radars = np.empty([batch_size, RADAR_HEIGHT, RADAR_WIDTH, RADAR_CHANNELS])
         # metrics = np.empty([batch_size, 2])
         # controls = np.empty([batch_size, 2])
+        speeds = np.empty(batch_size)
         controls = np.empty(batch_size)
         while True:
             i = 0
@@ -177,9 +178,10 @@ def batch_generator(data, indexes, batch_size, is_training):
                 radars[i] = radar[:, :, 1:3]
                 # controls[i] = [data['controls'][index][0] / 10, steer / 10]  # normalized throttle and steering
                 controls[i] = steer / 10
+                speeds[i] = data['metrics'][index][0]
                 # metrics[i] = data['metrics'][index]
                 i += 1
                 if i == batch_size:
                     break
             # yield [images, metrics], controls
-            yield [images, radars], controls
+            yield [images, radars, speeds], controls

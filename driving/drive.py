@@ -71,7 +71,7 @@ def drive(model):
             image = preprocess(image)
 
             # predict steering angle for the image
-            controls = model.predict([np.array([image]), np.array([radar])], batch_size=1)
+            controls = model.predict([np.array([image]), np.array([radar]), np.array([speed])], batch_size=1)
 
             if speed < 35:
                 throttle = 0.4
