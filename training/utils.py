@@ -8,7 +8,7 @@ import tensorflow as tf
 
 IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
 INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
-RADAR_HEIGHT, RADAR_WIDTH, RADAR_CHANNELS = 36, 60, 2
+RADAR_HEIGHT, RADAR_WIDTH, RADAR_CHANNELS = 20, 20, 1
 RADAR_SHAPE = (RADAR_HEIGHT, RADAR_WIDTH, RADAR_CHANNELS)
 
 
@@ -164,7 +164,7 @@ def batch_generator(data, indexes, batch_size, is_training):
             i = 0
             for index in np.random.permutation(indexes):
                 camera = data['img'][index]
-                radar = cv2.cvtColor(camera[194:230, 5:65, :], cv2.COLOR_RGB2BGR)
+                radar = cv2.cvtColor(camera[206:226, 25:45, :], cv2.COLOR_RGB2BGR)
                 steer = data['controls'][index][1]
 
                 # augmentation
@@ -175,7 +175,7 @@ def batch_generator(data, indexes, batch_size, is_training):
 
                 # add the image and steering angle to the batch
                 images[i] = preprocess(camera)
-                radars[i] = radar[:, :, 1:3]
+                radars[i] = radar[:, :, 2:3]
                 # controls[i] = [data['controls'][index][0] / 10, steer / 10]  # normalized throttle and steering
                 controls[i] = steer / 10
                 speeds[i] = data['metrics'][index][0]

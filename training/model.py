@@ -2,7 +2,7 @@
 NN model
 """
 
-from keras.layers import Lambda, Conv2D, Dropout, Dense, Flatten, Concatenate, Input
+from keras.layers import Lambda, Conv2D, Dropout, Dense, Flatten, Concatenate, Input, MaxPooling2D
 from keras.models import Model
 
 from training.utils import INPUT_SHAPE, RADAR_SHAPE
@@ -98,14 +98,13 @@ def build_model(args):
 
     # radar model
     radar_input = Input(shape=RADAR_SHAPE)
-    radar_model = (Conv2D(24, (5, 5), activation='elu', strides=(2, 2)))(radar_input)
-    radar_model = (Conv2D(36, (5, 5), activation='elu', strides=(2, 2)))(radar_model)
-    radar_model = (Conv2D(48, (3, 3), activation='elu'))(radar_model)
-    radar_model = (Conv2D(64, (3, 3), activation='elu'))(radar_model)
+    radar_model = (Conv2D(32, (5, 5), activation='elu'))(radar_input)
+    radar_model = (MaxPooling2D((2, 2), strides=(2, 2)))(radar_model)
+    radar_model = (Conv2D(64, (5, 5), activation='elu'))(radar_model)
+    radar_model = (MaxPooling2D((2, 2), strides=(2, 2)))(radar_model)
     radar_model = (Dropout(args.keep_prob / 2))(radar_model)
     radar_model = (Flatten())(radar_model)
-    radar_model = (Dense(100, activation='elu'))(radar_model)
-    radar_model = (Dense(20, activation='elu'))(radar_model)
+    radar_model = (Dense(10, activation='elu'))(radar_model)
 
     # speed
     speed_input = Input(shape=(1,))
