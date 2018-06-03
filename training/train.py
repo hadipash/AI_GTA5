@@ -124,7 +124,7 @@ def main():
     # build model
     model = build_model(args)
     # load previous weights
-    # model = load_weights(model)
+    model = load_weights(model)
     # train model on data, it saves as model.h5
     train_model(model, args, *data)
 

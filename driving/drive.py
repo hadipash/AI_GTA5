@@ -67,10 +67,11 @@ def drive(model):
         while not pause:
             # apply the preprocessing
             image, speed, direct = img_process("Grand Theft Auto V")
-            radar = cv2.cvtColor(image[194:230, 5:65, :], cv2.COLOR_RGB2BGR)[:, :, 1:3]
+            radar = cv2.cvtColor(image[206:226, 25:45, :], cv2.COLOR_RGB2BGR)[:, :, 2:3]
             image = preprocess(image)
 
             # predict steering angle for the image
+            # original + radar (small) + speed
             controls = model.predict([np.array([image]), np.array([radar]), np.array([speed])], batch_size=1)
 
             if speed < 35:
