@@ -18,9 +18,21 @@ from data_collection.key_cap import key_check
 # gamepad axes limits and gamepad module
 from driving.gamepad import AXIS_MIN, AXIS_MAX, TRIGGER_MAX, XInputDevice
 from training.utils import preprocess
+# for using yolo
+from darkflow.net.build import TFNet
+from detect import yolo_detection
 
 model_path = "..\\training"
 gamepad = None
+
+#set yolo option
+option = {
+    'model': '../cfg/yolo.cfg',
+    'load': '../bin/yolov2.weights',
+    'threshold': 0.3,
+    'gpu':0.5
+}
+tfnet = TFNet(option)
 
 
 def set_gamepad(controls):
@@ -86,6 +98,13 @@ def drive(model):
             # set the gamepad values
             set_gamepad(controls)
             # print("Steering: {0:.2f}".format(controls[0][0]))
+			
+			#for yolo detection
+            screen = np.array(grab_screen("Grand Theft Auto V"), dtype=np.uint8)
+            yolo_detection(tfnet, screen, speed, controls, gamepad, direct)
+            cv2.imshow('frame', screen)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
             if direct == 6:
                 print("Arrived at destination.")
