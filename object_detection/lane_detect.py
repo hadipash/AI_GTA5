@@ -5,7 +5,7 @@ import numpy as np
 
 from data_collection.img_process import grab_screen
 
-lines = [[], [], []]
+prev_lines = [[], [], []]
 
 
 def crop(image):
@@ -20,10 +20,11 @@ def grayscale(img):
     Applies the Grayscale transform
     This will return an image with only one color channel
     """
-    img1 = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    img2 = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)[:, :, 2:3]
+    # img1 = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    # img2 = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)[:, :, 2:3]
 
-    return weighted_img(img1, img2, 1, 0.6)
+    # return weighted_img(img1, img2, 1, 0.6)
+    return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
 
 def canny(img, low_threshold=100, high_threshold=300):
@@ -66,7 +67,7 @@ def region_of_interest(img, vertices):
     return masked_image
 
 
-def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
+def construct_lane(lines):
     """
     NOTE: this is the function you might want to use as a starting point once you want to
     average/extrapolate the line segments you detect to map out the full
@@ -87,8 +88,13 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
     left_line_y = []
     right_line_x = []
     right_line_y = []
-    stop_line_x = []
-    stop_line_y = []
+    stop_line_x_first = []
+    stop_line_y_first = []
+    stop_line_x_second = []
+    stop_line_y_second = []
+
+    lane = []
+    stop_line = []
 
     min_y = 0
     max_y = 190
@@ -101,8 +107,13 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
                     continue
                 if math.fabs(slope) <= 0.05:  # stop line
                     if (y1 > 20) and (y2 > 20):
-                        stop_line_x.extend([x1, x2])
-                        stop_line_y.extend([y1, y2])
+                        # we need to detect two stop lines (top and bottom)
+                        if not stop_line_x_first or abs(stop_line_y_first[0] - y1) < 15:
+                            stop_line_x_first.extend([x1, x2])
+                            stop_line_y_first.extend([y1, y2])
+                        else:
+                            stop_line_x_second.extend([x1, x2])
+                            stop_line_y_second.extend([y1, y2])
                 elif slope <= 0:  # <-- If the slope is negative, left group.
                     left_line_x.extend([x1, x2])
                     left_line_y.extend([y1, y2])
@@ -110,7 +121,6 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
                     right_line_x.extend([x1, x2])
                     right_line_y.extend([y1, y2])
 
-        new_lane = []
         offset = 4
         if left_line_x:
             poly_left = np.poly1d(np.polyfit(
@@ -121,19 +131,19 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
 
             x1 = int(poly_left(max_y))
             x2 = int(poly_left(min_y))
-            if lines[0]:
+            if prev_lines[0]:
                 # recalculate x1
-                if abs(x1 - lines[0][0]) > offset:
-                    x1 = lines[0][0] - offset if lines[0][0] > x1 else lines[0][0] + offset
+                if abs(x1 - prev_lines[0][0]) > offset:
+                    x1 = prev_lines[0][0] - offset if prev_lines[0][0] > x1 else prev_lines[0][0] + offset
                 # recalculate x2
-                if abs(x2 - lines[0][1]) > offset:
-                    x2 = lines[0][1] - offset if lines[0][1] > x2 else lines[0][1] + offset
+                if abs(x2 - prev_lines[0][1]) > offset:
+                    x2 = prev_lines[0][1] - offset if prev_lines[0][1] > x2 else prev_lines[0][1] + offset
 
-            lines[0] = [x1, x2]
-            new_lane.append([x1, max_y, x2, min_y])
-        elif lines[0]:
-            new_lane.append([lines[0][0], max_y, lines[0][1], min_y])
-            lines[0] = []
+            prev_lines[0] = [x1, x2]
+            lane.append([x1, max_y, x2, min_y])
+        elif prev_lines[0]:
+            lane.append([prev_lines[0][0], max_y, prev_lines[0][1], min_y])
+            prev_lines[0] = []
 
         if right_line_x:
             poly_right = np.poly1d(np.polyfit(
@@ -144,81 +154,44 @@ def draw_lane(img, lines, color=[0, 0, 255], thickness=5):
 
             x1 = int(poly_right(max_y))
             x2 = int(poly_right(min_y))
-            if lines[1]:
+            if prev_lines[1]:
                 # recalculate x1
-                if abs(x1 - lines[1][0]) > offset:
-                    x1 = lines[1][0] - offset if lines[1][0] > x1 else lines[1][0] + offset
+                if abs(x1 - prev_lines[1][0]) > offset:
+                    x1 = prev_lines[1][0] - offset if prev_lines[1][0] > x1 else prev_lines[1][0] + offset
                 # recalculate x2
-                if abs(x2 - lines[1][1]) > offset:
-                    x2 = lines[1][1] - offset if lines[1][1] > x2 else lines[1][1] + offset
+                if abs(x2 - prev_lines[1][1]) > offset:
+                    x2 = prev_lines[1][1] - offset if prev_lines[1][1] > x2 else prev_lines[1][1] + offset
 
-            lines[1] = [x1, x2]
-            new_lane.append([x1, max_y, x2, min_y])
-        elif lines[1]:
-            new_lane.append([lines[1][0], max_y, lines[1][1], min_y])
-            lines[1] = []
+            prev_lines[1] = [x1, x2]
+            lane.append([x1, max_y, x2, min_y])
+        elif prev_lines[1]:
+            lane.append([prev_lines[1][0], max_y, prev_lines[1][1], min_y])
+            prev_lines[1] = []
 
-        stop_line = []
-        if stop_line_x:
+        if stop_line_x_second:
             poly_stop = np.poly1d(np.polyfit(
-                stop_line_x,
-                stop_line_y,
+                stop_line_x_first,
+                stop_line_y_first,
                 deg=1
             ))
 
             y1 = int(poly_stop(50))
             y2 = int(poly_stop(750))
-            if lines[2]:
+            if prev_lines[2]:
                 # recalculate y1
-                if abs(y1 - lines[2][0]) > offset:
-                    y1 = lines[2][0] - offset if lines[2][0] > y1 else lines[2][0] + offset
+                if abs(y1 - prev_lines[2][0]) > offset:
+                    y1 = prev_lines[2][0] - offset if prev_lines[2][0] > y1 else prev_lines[2][0] + offset
                 # recalculate y2
-                if abs(y2 - lines[2][1]) > offset:
-                    y2 = lines[2][1] - offset if lines[2][1] > y2 else lines[2][1] + offset
+                if abs(y2 - prev_lines[2][1]) > offset:
+                    y2 = prev_lines[2][1] - offset if prev_lines[2][1] > y2 else prev_lines[2][1] + offset
 
-            lines[2] = [y1, y2]
+            prev_lines[2] = [y1, y2]
             stop_line.append([50, y1, 750, y2])
-        elif lines[2]:
-            stop_line.append([50, lines[2][0], 750, lines[2][1]])
-            lines[2] = []
+        elif prev_lines[2]:
+            stop_line.append([50, prev_lines[2][0], 750, prev_lines[2][1]])
+            prev_lines[2] = []
 
-        new_lane = [new_lane]
-        for line in new_lane:
-            for x1, y1, x2, y2 in line:
-                cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness)
-
-        polygon_points = None
-        offset_from_lane_edge = 8
-        if len(new_lane[0]) == 2:
-            lane_color = [60, 80, 0]
-            for x1, y1, x2, y2 in [new_lane[0][0]]:
-                p1 = (x1 + offset_from_lane_edge, y1)
-                p2 = (x2 + offset_from_lane_edge, y2)
-
-            for x1, y1, x2, y2 in [new_lane[0][1]]:
-                p3 = (x2 - offset_from_lane_edge, y2)
-                p4 = (x1 - offset_from_lane_edge, y1)
-
-            polygon_points = np.array([[p1, p2, p3, p4]], np.int32)
-            cv2.fillPoly(img, polygon_points, lane_color)
-
-        if len(stop_line) > 0:
-            for x1, y1, x2, y2 in stop_line:
-                cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness * 3)
-                if polygon_points is not None:
-                    for lx1, ly1, lx2, ly2 in [new_lane[0][0]]:
-                        p1 = (lx1 - offset_from_lane_edge, ly1)
-                        p2 = (lx2 - offset_from_lane_edge, ly2)
-
-                    for lx1, ly1, lx2, ly2 in [new_lane[0][1]]:
-                        p3 = (lx2 + offset_from_lane_edge, ly2)
-                        p4 = (lx1 + offset_from_lane_edge, ly1)
-
-                    polygon_points = np.array([[p1, p2, p3, p4]], np.int32)
-
-                    img = region_of_interest(img, polygon_points)
-
-    return img
+    return lane, stop_line
 
 
 def hough_lines(img, rho=6, theta=np.pi / 120, threshold=160, min_line_len=60, max_line_gap=10):
@@ -229,9 +202,7 @@ def hough_lines(img, rho=6, theta=np.pi / 120, threshold=160, min_line_len=60, m
     """
     lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len,
                             maxLineGap=max_line_gap)
-    line_img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
-    line_img = draw_lane(line_img, lines)
-    return line_img
+    return lines
 
 
 # Python 3 has support for cool math symbols.
@@ -250,6 +221,70 @@ def weighted_img(img, initial_img, α=0.8, β=1., γ=0.):
     return cv2.addWeighted(initial_img, α, img, β, γ)
 
 
+def draw_lane(original_img, lane, stop_line, width, height, color=[0, 0, 255], thickness=5):
+    img = np.zeros((width, height, 3), dtype=np.uint8)
+    polygon_points = None
+    offset_from_lane_edge = 8
+
+    # draw lane lines
+    if lane:
+        lane = [lane]
+        for line in lane:
+            for x1, y1, x2, y2 in line:
+                cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness)
+
+        # color the lane
+        if len(lane[0]) == 2:
+            lane_color = [60, 80, 0]
+            for x1, y1, x2, y2 in [lane[0][0]]:
+                p1 = (x1 + offset_from_lane_edge, y1)
+                p2 = (x2 + offset_from_lane_edge, y2)
+
+            for x1, y1, x2, y2 in [lane[0][1]]:
+                p3 = (x2 - offset_from_lane_edge, y2)
+                p4 = (x1 - offset_from_lane_edge, y1)
+
+            polygon_points = np.array([[p1, p2, p3, p4]], np.int32)
+            cv2.fillPoly(img, polygon_points, lane_color)
+
+    # draw stop line
+    if stop_line:
+        for x1, y1, x2, y2 in stop_line:
+            cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness * 3)
+            if polygon_points is not None:
+                for lx1, ly1, lx2, ly2 in [lane[0][0]]:
+                    p1 = (lx1 - offset_from_lane_edge, ly1)
+                    p2 = (lx2 - offset_from_lane_edge, ly2)
+
+                for lx1, ly1, lx2, ly2 in [lane[0][1]]:
+                    p3 = (lx2 + offset_from_lane_edge, ly2)
+                    p4 = (lx1 + offset_from_lane_edge, ly1)
+
+                polygon_points = np.array([[p1, p2, p3, p4]], np.int32)
+
+                img = region_of_interest(img, polygon_points)
+
+    return weighted_img(img, original_img)
+
+
+def detect_lane(screen):
+    # 0. Crop the image
+    original_img = crop(screen)
+    # 1. convert to gray
+    image = grayscale(original_img)
+    # 2. apply gaussian filter
+    image = gaussian_blur(image, 7)
+    # 3. canny
+    image = canny(image, 50, 100)
+    # 4. ROI
+    image = region_of_interest(image, np.array([[(0, 190), (0, 70), (187, 0),
+                                                 (613, 0), (800, 70), (800, 190)]], np.int32))
+    # 5. Hough lines
+    lines = hough_lines(image)
+    # 6. construct lane
+    return construct_lane(lines)
+
+
 def main():
     while True:
         # 0. Crop the image
@@ -265,8 +300,10 @@ def main():
                                                      (613, 0), (800, 70), (800, 190)]], np.int32))
         # 5. Hough lines
         lines = hough_lines(image)
-        # 6. Place lane detection output on the original image
-        image = weighted_img(lines, original_img)
+        # 6. construct lane
+        lane, stop_line = construct_lane(lines)
+        # 7. Place lane detection output on the original image
+        image = draw_lane(original_img, lane, stop_line, image.shape[0], image.shape[1])
 
         cv2.imshow("Frame", image)
         key = cv2.waitKey(1) & 0xFF
