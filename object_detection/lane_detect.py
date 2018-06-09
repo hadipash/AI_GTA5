@@ -20,10 +20,6 @@ def grayscale(img):
     Applies the Grayscale transform
     This will return an image with only one color channel
     """
-    # img1 = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    # img2 = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)[:, :, 2:3]
-
-    # return weighted_img(img1, img2, 1, 0.6)
     return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
 
@@ -82,7 +78,7 @@ def construct_lane(lines):
     This function draws `lines` with `color` and `thickness`.
     Lines are drawn on the image inplace (mutates the image).
     If you want to make the lines semi-transparent, think about combining
-    this function with the weighted_img() function below
+    this function with the add_images() function below
     """
     left_line_x = []
     left_line_y = []
@@ -93,7 +89,7 @@ def construct_lane(lines):
     stop_line_x_second = []
     stop_line_y_second = []
 
-    lane = []
+    lane = [[], []]
     stop_line = []
 
     min_y = 0
@@ -140,9 +136,9 @@ def construct_lane(lines):
                     x2 = prev_lines[0][1] - offset if prev_lines[0][1] > x2 else prev_lines[0][1] + offset
 
             prev_lines[0] = [x1, x2]
-            lane.append([x1, max_y, x2, min_y])
+            lane[0] = [x1, max_y, x2, min_y]
         elif prev_lines[0]:
-            lane.append([prev_lines[0][0], max_y, prev_lines[0][1], min_y])
+            lane[0] = [prev_lines[0][0], max_y, prev_lines[0][1], min_y]
             prev_lines[0] = []
 
         if right_line_x:
@@ -163,9 +159,9 @@ def construct_lane(lines):
                     x2 = prev_lines[1][1] - offset if prev_lines[1][1] > x2 else prev_lines[1][1] + offset
 
             prev_lines[1] = [x1, x2]
-            lane.append([x1, max_y, x2, min_y])
+            lane[1] = [x1, max_y, x2, min_y]
         elif prev_lines[1]:
-            lane.append([prev_lines[1][0], max_y, prev_lines[1][1], min_y])
+            lane[1] = [prev_lines[1][0], max_y, prev_lines[1][1], min_y]
             prev_lines[1] = []
 
         if stop_line_x_second:
@@ -206,7 +202,7 @@ def hough_lines(img, rho=6, theta=np.pi / 120, threshold=160, min_line_len=60, m
 
 
 # Python 3 has support for cool math symbols.
-def weighted_img(img, initial_img, α=0.8, β=1., γ=0.):
+def add_images(img, initial_img):
     """
     `img` is the output of the hough_lines(), An image with lines drawn on it.
     Should be a blank image (all black) with lines drawn on it.
@@ -218,60 +214,61 @@ def weighted_img(img, initial_img, α=0.8, β=1., γ=0.):
     initial_img * α + img * β + γ
     NOTE: initial_img and img must be the same shape!
     """
-    return cv2.addWeighted(initial_img, α, img, β, γ)
+    return cv2.add(initial_img, img)
 
 
-def draw_lane(original_img, lane, stop_line, width, height, color=[0, 0, 255], thickness=5):
-    img = np.zeros((width, height, 3), dtype=np.uint8)
+def draw_lane(original_img, lane, stop_line, left_color, right_color, thickness=5):
+    img = np.zeros((original_img.shape[0], original_img.shape[1], 3), dtype=np.uint8)
     polygon_points = None
     offset_from_lane_edge = 8
 
     # draw lane lines
-    if lane:
-        lane = [lane]
-        for line in lane:
-            for x1, y1, x2, y2 in line:
-                cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness)
+    if lane[0]:
+        for x1, y1, x2, y2 in [lane[0]]:
+            cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), left_color, thickness)
+    if lane[1]:
+        for x1, y1, x2, y2 in [lane[1]]:
+            cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), right_color, thickness)
 
-        # color the lane
-        if len(lane[0]) == 2:
-            lane_color = [60, 80, 0]
-            for x1, y1, x2, y2 in [lane[0][0]]:
-                p1 = (x1 + offset_from_lane_edge, y1)
-                p2 = (x2 + offset_from_lane_edge, y2)
+    # color the lane
+    if lane[0] and lane[1]:
+        lane_color = [40, 60, 0]
+        for x1, y1, x2, y2 in [lane[0]]:
+            p1 = (x1 + offset_from_lane_edge, y1)
+            p2 = (x2 + offset_from_lane_edge, y2)
 
-            for x1, y1, x2, y2 in [lane[0][1]]:
-                p3 = (x2 - offset_from_lane_edge, y2)
-                p4 = (x1 - offset_from_lane_edge, y1)
+        for x1, y1, x2, y2 in [lane[1]]:
+            p3 = (x2 - offset_from_lane_edge, y2)
+            p4 = (x1 - offset_from_lane_edge, y1)
 
-            polygon_points = np.array([[p1, p2, p3, p4]], np.int32)
-            cv2.fillPoly(img, polygon_points, lane_color)
+        polygon_points = np.array([[p1, p2, p3, p4]], np.int32)
+        cv2.fillPoly(img, polygon_points, lane_color)
 
     # draw stop line
     if stop_line:
         for x1, y1, x2, y2 in stop_line:
-            cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness * 3)
+            cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), [0, 0, 255], thickness * 3)
             if polygon_points is not None:
-                for lx1, ly1, lx2, ly2 in [lane[0][0]]:
-                    p1 = (lx1 - offset_from_lane_edge, ly1)
-                    p2 = (lx2 - offset_from_lane_edge, ly2)
+                for px1, py1, px2, py2 in [lane[0]]:
+                    p1 = (px1 - offset_from_lane_edge, py1)
+                    p2 = (px2 - offset_from_lane_edge, py2)
 
-                for lx1, ly1, lx2, ly2 in [lane[0][1]]:
-                    p3 = (lx2 + offset_from_lane_edge, ly2)
-                    p4 = (lx1 + offset_from_lane_edge, ly1)
+                for px1, py1, px2, py2 in [lane[1]]:
+                    p3 = (px2 + offset_from_lane_edge, py2)
+                    p4 = (px1 + offset_from_lane_edge, py1)
 
                 polygon_points = np.array([[p1, p2, p3, p4]], np.int32)
 
                 img = region_of_interest(img, polygon_points)
 
-    return weighted_img(img, original_img)
+    return add_images(img, original_img)
 
 
 def detect_lane(screen):
     # 0. Crop the image
-    original_img = crop(screen)
+    image = crop(screen)
     # 1. convert to gray
-    image = grayscale(original_img)
+    image = grayscale(image)
     # 2. apply gaussian filter
     image = gaussian_blur(image, 7)
     # 3. canny
@@ -287,10 +284,9 @@ def detect_lane(screen):
 
 def main():
     while True:
-        # 0. Crop the image
-        original_img = crop(grab_screen())
+        original_img = grab_screen()
         # 1. convert to gray
-        image = grayscale(original_img)
+        image = grayscale(crop(original_img))
         # 2. apply gaussian filter
         image = gaussian_blur(image, 7)
         # 3. canny
@@ -303,9 +299,10 @@ def main():
         # 6. construct lane
         lane, stop_line = construct_lane(lines)
         # 7. Place lane detection output on the original image
-        image = draw_lane(original_img, lane, stop_line, image.shape[0], image.shape[1])
+        original_img[280:-130, :, :] = draw_lane(original_img[280:-130, :, :], lane, stop_line, [0, 255, 0],
+                                                 [0, 255, 0])
 
-        cv2.imshow("Frame", image)
+        cv2.imshow("Frame", original_img)
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
             cv2.destroyAllWindows()

@@ -17,22 +17,25 @@ from data_collection.img_process import img_process
 from data_collection.key_cap import key_check
 # gamepad axes limits and gamepad module
 from driving.gamepad import AXIS_MIN, AXIS_MAX, TRIGGER_MAX, XInputDevice
+# YOLO algorithm
+# from darkflow.net.build import TFNet
+# from detect import yolo_detection
+# lane detection algorithm
+from object_detection.lane_detect import detect_lane, draw_lane
 from training.utils import preprocess
-# for using yolo
-from darkflow.net.build import TFNet
-from detect import yolo_detection
 
 model_path = "..\\training"
 gamepad = None
 
-#set yolo option
-option = {
-    'model': '../cfg/yolo.cfg',
-    'load': '../bin/yolov2.weights',
-    'threshold': 0.3,
-    'gpu':0.5
-}
-tfnet = TFNet(option)
+
+# set YOLO options
+# option = {
+#     'model': '../cfg/yolo.cfg',
+#     'load': '../bin/yolov2.weights',
+#     'threshold': 0.3,
+#     'gpu': 0.5
+# }
+# tfnet = TFNet(option)
 
 
 def set_gamepad(controls):
@@ -73,40 +76,57 @@ def drive(model):
     close = False  # to exit execution
     pause = True  # to pause execution
     throttle = 0
+    left_line_max = 80
+    right_line_max = 680
 
     print("Press T to start driving")
     while not close:
         while not pause:
             # apply the preprocessing
-            image, speed, direct = img_process("Grand Theft Auto V")
-            radar = cv2.cvtColor(image[206:226, 25:45, :], cv2.COLOR_RGB2BGR)[:, :, 2:3]
-            image = preprocess(image)
+            screen, resized, speed, direct = img_process("Grand Theft Auto V")
+            radar = cv2.cvtColor(resized[206:226, 25:45, :], cv2.COLOR_RGB2BGR)[:, :, 2:3]
+            resized = preprocess(resized)
+            left_line_color = [0, 255, 0]
+            right_line_color = [0, 255, 0]
 
             # predict steering angle for the image
             # original + radar (small) + speed
-            controls = model.predict([np.array([image]), np.array([radar]), np.array([speed])], batch_size=1)
+            controls = model.predict([np.array([resized]), np.array([radar]), np.array([speed])], batch_size=1)
+            # check that the car is following lane
+            lane, stop_line = detect_lane(screen)
 
+            # adjusting speed
             if speed < 35:
                 throttle = 0.4
-                controls = [[controls[0][0], throttle]]
             elif speed > 40:
                 throttle = 0.0
-                controls = [[controls[0][0], throttle]]
-            else:
-                controls = [[controls[0][0], throttle]]
+
+            # adjusting steering angle
+            if lane[0] and lane[0][0] > left_line_max:
+                controls[0][0] = 0.27
+                left_line_color = [0, 0, 255]
+            elif lane[1] and lane[1][0] < right_line_max:
+                controls[0][0] = -0.27
+                right_line_color = [0, 0, 255]
 
             # set the gamepad values
-            set_gamepad(controls)
+            set_gamepad([[controls[0][0], throttle]])
             # print("Steering: {0:.2f}".format(controls[0][0]))
-			
-			#for yolo detection
-            screen = np.array(grab_screen("Grand Theft Auto V"), dtype=np.uint8)
-            yolo_detection(tfnet, screen, speed, controls, gamepad, direct)
-            cv2.imshow('frame', screen)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+
+            # for yolo detection
+            # screen = np.array(screen, dtype=np.uint8)
+            # yolo_detection(tfnet, screen, speed, controls, gamepad, direct)
+            # cv2.imshow('frame', screen)
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
+
+            screen[280:-130, :, :] = draw_lane(screen[280:-130, :, :], lane, stop_line,
+                                               left_line_color, right_line_color)
+            cv2.imshow("Frame", screen)
+            cv2.waitKey(1)
 
             if direct == 6:
+                cv2.destroyAllWindows()
                 print("Arrived at destination.")
                 stop()
                 pause = True
@@ -116,6 +136,7 @@ def drive(model):
 
             keys = key_check()
             if 'T' in keys:
+                cv2.destroyAllWindows()
                 pause = True
                 # release gamepad keys
                 stop()

@@ -71,7 +71,7 @@ def main():
             # read throttle and steering values from the gamepad
             throttle, steering = gamepad.get_state()
             # get screen, speed and direction
-            screen, speed, direction = img_process("Grand Theft Auto V")
+            ignore, screen, speed, direction = img_process("Grand Theft Auto V")
 
             training_img.append(screen)
             controls.append([throttle, steering])
