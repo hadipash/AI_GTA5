@@ -16,3 +16,7 @@ Keras
 scikit-learn
 # To read information from a gamepad
 inputs
+# for object detection module
+Shapely
+# for YOLO
+Cython

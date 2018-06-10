@@ -17,25 +17,14 @@ from data_collection.img_process import img_process
 from data_collection.key_cap import key_check
 # gamepad axes limits and gamepad module
 from driving.gamepad import AXIS_MIN, AXIS_MAX, TRIGGER_MAX, XInputDevice
+from object_detection.direction import Direct
 # YOLO algorithm
-# from darkflow.net.build import TFNet
-# from detect import yolo_detection
 # lane detection algorithm
 from object_detection.lane_detect import detect_lane, draw_lane
 from training.utils import preprocess
 
 model_path = "..\\training"
 gamepad = None
-
-
-# set YOLO options
-# option = {
-#     'model': '../cfg/yolo.cfg',
-#     'load': '../bin/yolov2.weights',
-#     'threshold': 0.3,
-#     'gpu': 0.5
-# }
-# tfnet = TFNet(option)
 
 
 def set_gamepad(controls):
@@ -125,7 +114,7 @@ def drive(model):
             cv2.imshow("Frame", screen)
             cv2.waitKey(1)
 
-            if direct == 6:
+            if direct == Direct.NONE:
                 cv2.destroyAllWindows()
                 print("Arrived at destination.")
                 stop()
