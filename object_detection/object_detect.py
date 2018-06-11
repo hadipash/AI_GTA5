@@ -123,28 +123,24 @@ def person_warning(frame, top_left, bottom_right):
     apx_distance = round((1 - ((bottom_right[0] / 800) - (top_left[0] / 800))) ** 15, 1)
     frame = cv2.putText(frame, '{}'.format(apx_distance), (int(mid_x), int(mid_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                         (255, 255, 255), 2)
-    br_array = np.array([[(bottom_right[0], bottom_right[1]), (bottom_right[0], bottom_right[1]),
-                          (bottom_right[0], bottom_right[1]), (bottom_right[0], bottom_right[1])]], dtype=np.int32)
 
-    a1 = br_array[0, 0, 0]  # tr[0
-    b2 = br_array[0, 0, 1]  # tr[1
-    c3 = br_array[0, 1, 0]  # tl[0
-    d4 = br_array[0, 1, 1]  # tl[1
-    e5 = br_array[0, 2, 0]  # bl[0
-    f6 = br_array[0, 2, 1]  # bl[1
-    g7 = br_array[0, 3, 0]  # br[0
-    h8 = br_array[0, 3, 1]  # br[1
+    roi = Polygon([(0, 503), (179, 37), (629, 360), (800, 500)])
+	roi2 = Polygon([(12, 482), (295, 302), (559, 307), (800, 457)])
 
-    if apx_distance >= 0.6:
-        if a1 <= 629 and b2 >= 360 and c3 >= 179 and d4 >= 37 and e5 >= 0 and f6 <= 503 and g7 <= 800 and h8 <= 500:
-            cv2.putText(frame, 'WARNING!', bottom_right, cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+	result = 0
+	
+    person = box(top_left[0], top_left[1], bottom_right[0], bottom_right[1])
 
-    if apx_distance < 0.6:
-        if a1 <= 559 and b2 >= 307 and c3 >= 295 and d4 >= 302 and e5 >= 12 and f6 <= 482 and g7 <= 800 and h8 <= 457:
-            cv2.putText(frame, 'WARNING!', bottom_right, cv2.FONT_HERSHEY_SIMPLEX, 1.0,
-                        (0, 0, 255), 3)
+	if apx_distance >= 0.6:
+		if roi.intersects(person):
+			cv2.putText(frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]], 'WARNING!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+				result = 1
+	if apx_distance < 0.6:
+		if roi2.intersects(person):
+			cv2.putText(frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]], 'WARNING!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+				result = 2
 
-    return frame
+    return frame, result
 
 
 def yolo_detection(screen, direct):
