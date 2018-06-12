@@ -19,6 +19,7 @@ from data_collection.key_cap import key_check
 from driving.gamepad import AXIS_MIN, AXIS_MAX, TRIGGER_MAX, XInputDevice
 from object_detection.direction import Direct
 # YOLO algorithm
+from object_detection.object_detect import yolo_detection
 # lane detection algorithm
 from object_detection.lane_detect import detect_lane, draw_lane
 from training.utils import preprocess
@@ -83,12 +84,30 @@ def drive(model):
             controls = model.predict([np.array([resized]), np.array([radar]), np.array([speed])], batch_size=1)
             # check that the car is following lane
             lane, stop_line = detect_lane(screen)
+            # detect objects
+            screen, color_detected, obj_distance = yolo_detection(screen, direct)
 
             # adjusting speed
-            if speed < 35:
+            if speed < 45:
                 throttle = 0.4
-            elif speed > 40:
+            elif speed > 50:
                 throttle = 0.0
+
+            if obj_distance and 0 <= obj_distance <= 0.6:
+                throttle = throttle - (0.8 - obj_distance)
+                print("Throttle: {}".format(throttle))
+
+            if color_detected == "Red":
+                if stop_line:
+                    print(stop_line[0][1])
+                    if 0 <= stop_line[0][1] <= 50:
+                        throttle = -0.5
+                    elif 50< stop_line[0][1] <=120:
+                        throttle = -1
+                else:
+                    throttle = -0.5
+                if speed < 10:
+                    throttle = 0.0
 
             # adjusting steering angle
             if lane[0] and lane[0][0] > left_line_max:
@@ -100,7 +119,6 @@ def drive(model):
 
             # set the gamepad values
             set_gamepad([[controls[0][0], throttle]])
-            # print("Steering: {0:.2f}".format(controls[0][0]))
 
             # for yolo detection
             # screen = np.array(screen, dtype=np.uint8)
@@ -114,7 +132,7 @@ def drive(model):
             cv2.imshow("Frame", screen)
             cv2.waitKey(1)
 
-            if direct == Direct.NONE:
+            if direct == 6:
                 cv2.destroyAllWindows()
                 print("Arrived at destination.")
                 stop()

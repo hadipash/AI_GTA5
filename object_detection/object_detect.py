@@ -9,7 +9,7 @@ from object_detection.direction import Direct
 # set YOLO options
 options = {
     'model': 'cfg/yolo.cfg',
-    'load': 'bin/yolov2.weights',
+    'load': 'yolov2.weights',
     'threshold': 0.3,
     'gpu': 0.5
 }
@@ -44,15 +44,6 @@ def light_recog(frame, direct, traffic_lights):
     roi = frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
     hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
     color_detected = ''
-
-    mid_x = (bottom_right[0] + top_left[0]) / 2
-    mid_y = (top_left[1] + bottom_right[1]) / 2
-
-    # measure the width of the detected object by asking how many pixels-wide the object is.
-    apx_distance = round((1 - ((bottom_right[0] / 800) - (top_left[0] / 800))) ** 18, 1)
-
-    frame = cv2.putText(frame, '{}'.format(apx_distance), (int(mid_x), int(mid_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                        (255, 255, 255), 2)
 
     # possible color ranges for traffic lights
     red_lower = np.array([136, 87, 111], dtype=np.uint8)
@@ -93,54 +84,48 @@ def light_recog(frame, direct, traffic_lights):
 
     frame = cv2.putText(frame, "detected", bottom_right, cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
 
-    return frame, color_detected, apx_distance
+    return frame, color_detected
 
 
-def distance_warning(frame, top_left, bottom_right):
-    mid_x = (bottom_right[0] + top_left[0]) / 2
-    mid_y = (top_left[1] + bottom_right[1]) / 2
-    apx_distance = round((1 - ((bottom_right[0] / 800) - (top_left[0] / 800))) ** 4, 1)
-    frame = cv2.putText(frame, '{}'.format(apx_distance), (int(mid_x), int(mid_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                        (255, 255, 255), 2)
+def distance_to_car(frame, top_left, bottom_right):
+    distance = None
 
     # myRoi_array= np.array([[(0, 490), (309, 269), (490, 270), (800,473)]])
     # process_img = region_of_interest(frame, myRoi_array)
     # cv2.imshow("precess_img", process_img)
 
-    roi = Polygon([(15, 472), (330, 321), (470, 321), (796, 495)])
+    # roi = Polygon([(15, 472), (330, 321), (470, 321), (796, 495)])
+    roi = Polygon([(100, 470), (350, 280), (450, 280), (700, 470)])
     car = box(top_left[0], top_left[1], bottom_right[0], bottom_right[1])
 
     if roi.intersects(car):
+        mid_x = (bottom_right[0] + top_left[0]) / 2
+        mid_y = (top_left[1] + bottom_right[1]) / 2
+        distance = round((1 - ((bottom_right[0] / 800) - (top_left[0] / 800))) ** 4, 1)
+        frame = cv2.putText(frame, '{}'.format(distance), (int(mid_x), int(mid_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                            (255, 255, 255), 2)
         cv2.putText(frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]],
                     'WARNING!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
 
-    return frame, apx_distance
+    return frame, distance
 
 
-def person_warning(frame, top_left, bottom_right):
-    mid_x = (bottom_right[0] + top_left[0]) / 2
-    mid_y = (top_left[1] + bottom_right[1]) / 2
-    apx_distance = round((1 - ((bottom_right[0] / 800) - (top_left[0] / 800))) ** 15, 1)
-    frame = cv2.putText(frame, '{}'.format(apx_distance), (int(mid_x), int(mid_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                        (255, 255, 255), 2)
+def distance_to_human(frame, top_left, bottom_right):
+    distance = None
 
-    roi = Polygon([(0, 503), (179, 37), (629, 360), (800, 500)])
-	roi2 = Polygon([(12, 482), (295, 302), (559, 307), (800, 457)])
-
-	result = 0
-	
+    roi = Polygon([(90, 470), (350, 280), (450, 280), (700, 470)])
     person = box(top_left[0], top_left[1], bottom_right[0], bottom_right[1])
 
-	if apx_distance >= 0.6:
-		if roi.intersects(person):
-			cv2.putText(frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]], 'WARNING!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
-				result = 1
-	if apx_distance < 0.6:
-		if roi2.intersects(person):
-			cv2.putText(frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]], 'WARNING!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
-				result = 2
+    if roi.intersects(person):
+        mid_x = (bottom_right[0] + top_left[0]) / 2
+        mid_y = (top_left[1] + bottom_right[1]) / 2
+        distance = round((1 - ((bottom_right[0] / 800) - (top_left[0] / 800))) ** 15, 1)
+        frame = cv2.putText(frame, '{}'.format(distance), (int(mid_x), int(mid_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                            (255, 255, 255), 2)
+        cv2.putText(frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]],
+                    'WARNING!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
 
-    return frame, result
+    return frame, distance
 
 
 def yolo_detection(screen, direct):
@@ -148,6 +133,8 @@ def yolo_detection(screen, direct):
     results = tfnet.return_predict(screen[:-130, :, :])
     # create a list of detected traffic lights (might be several on a frame)
     traffic_lights = []
+    color_detected = None
+    distance = 1
 
     for color, color2, result in zip(colors, colors2, results):
         top_left = (result['topleft']['x'], result['topleft']['y'])
@@ -157,7 +144,7 @@ def yolo_detection(screen, direct):
         text = '{}: {:.0f}%'.format(label, confidence * 100)
 
         if label == 'traffic light' and confidence > 0.3:
-            if 220 <= result['topleft']['x'] <= 750:
+            if 220 <= result['topleft']['x'] <= 630:
                 traffic_lights.append(result)
 
             color = color2
@@ -165,25 +152,38 @@ def yolo_detection(screen, direct):
             screen = cv2.putText(screen, text, top_left, cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
 
         if label == 'car' or label == 'bus' or label == 'truck' or label == 'train':
-            screen = distance_warning(screen, top_left, bottom_right)
+            screen, car_distance = distance_to_car(screen, top_left, bottom_right)
+
+            if car_distance and 0 <= car_distance < distance:
+                distance = car_distance
+
             screen = cv2.rectangle(screen, top_left, bottom_right, color, 6)
             screen = cv2.putText(screen, text, top_left, cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
 
         if label == 'person':
-            screen = person_warning(screen, top_left, bottom_right)
+            screen, person_distance = distance_to_human(screen, top_left, bottom_right)
+
+            if person_distance and 0 <= person_distance < distance:
+                distance = person_distance
+
             screen = cv2.rectangle(screen, top_left, bottom_right, color, 6)
             screen = cv2.putText(screen, text, top_left, cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
 
     if traffic_lights:
-        screen = light_recog(screen, direct, traffic_lights)
+        screen, color_detected = light_recog(screen, direct, traffic_lights)
 
-    return screen
+    return screen, color_detected, distance
 
 
 def main():
     while True:
         screen = grab_screen()
-        screen = yolo_detection(screen, 0)
+        screen, color_detected, obj_distance = yolo_detection(screen, 0)
+
+        if color_detected:
+            print("Color detected: " + color_detected)
+        if obj_distance != 1:
+            print("Distance to obstacle: {}".format(obj_distance))
 
         cv2.imshow("Frame", screen)
         key = cv2.waitKey(1) & 0xFF
