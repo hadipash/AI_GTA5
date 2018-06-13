@@ -117,7 +117,7 @@ def construct_lane(lines):
                     right_line_x.extend([x1, x2])
                     right_line_y.extend([y1, y2])
 
-        offset = 4
+        offset = 7
         if left_line_x:
             poly_left = np.poly1d(np.polyfit(
                 left_line_y,

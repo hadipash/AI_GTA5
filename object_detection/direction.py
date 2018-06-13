@@ -8,4 +8,4 @@ class Direct(Enum):
     SLIGHTLY_LEFT = 3
     SLIGHTLY_RIGHT = 4
     U_TURN = 5
-    NONE = 6
+    ARRIVED = 6

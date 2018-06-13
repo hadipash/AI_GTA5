@@ -7,7 +7,6 @@ import os
 import time
 
 import cv2
-# matrix math
 import numpy as np
 # load our saved model
 from keras.models import load_model
@@ -51,12 +50,6 @@ def set_gamepad(controls):
     gamepad.SetAxis('X', axis)
 
 
-def stop():
-    gamepad.SetTrigger('L', 0)
-    gamepad.SetTrigger('R', 0)
-    gamepad.SetAxis('X', 0)
-
-
 def drive(model):
     global gamepad
     gamepad = XInputDevice(1)
@@ -65,11 +58,16 @@ def drive(model):
     # last_time = time.time()  # to measure the number of frames
     close = False  # to exit execution
     pause = True  # to pause execution
+    stop = False    # to stop the car
     throttle = 0
-    left_line_max = 80
-    right_line_max = 680
+    left_line_max = 75
+    right_line_max = 670
 
     print("Press T to start driving")
+
+    yolo_screen, resized, speed, direct = img_process("Grand Theft Auto V")
+    cv2.imshow("Drive-mode", yolo_screen)
+
     while not close:
         while not pause:
             # apply the preprocessing
@@ -85,29 +83,37 @@ def drive(model):
             # check that the car is following lane
             lane, stop_line = detect_lane(screen)
             # detect objects
-            screen, color_detected, obj_distance = yolo_detection(screen, direct)
+            yolo_screen, color_detected, obj_distance = yolo_detection(screen, direct)
 
-            # adjusting speed
-            if speed < 45:
-                throttle = 0.4
-            elif speed > 50:
-                throttle = 0.0
-
-            if obj_distance and 0 <= obj_distance <= 0.6:
-                throttle = throttle - (0.8 - obj_distance)
-                print("Throttle: {}".format(throttle))
-
-            if color_detected == "Red":
-                if stop_line:
-                    print(stop_line[0][1])
-                    if 0 <= stop_line[0][1] <= 50:
-                        throttle = -0.5
-                    elif 50< stop_line[0][1] <=120:
-                        throttle = -1
-                else:
-                    throttle = -0.5
-                if speed < 10:
+            if not stop:
+                # adjusting speed
+                if speed < 45:
+                    throttle = 0.4
+                elif speed > 50:
                     throttle = 0.0
+
+                if 0 <= obj_distance <= 0.6:
+                    if speed < 5:
+                        throttle = 0
+                    else:
+                        throttle = -0.7 if obj_distance <= 0.4 else -0.3
+
+                if color_detected == "Red":
+                    if stop_line:
+                        if speed < 5:
+                            throttle = 0
+                        elif 0 <= stop_line[0][1] <= 50:
+                            throttle = -0.5
+                        elif 50 < stop_line[0][1] <= 120:
+                            throttle = -1
+                    else:
+                        throttle = -0.5
+            elif speed > 5:
+                throttle = -1
+            else:
+                throttle = 0
+                cv2.destroyAllWindows()
+                pause = True
 
             # adjusting steering angle
             if lane[0] and lane[0][0] > left_line_max:
@@ -120,6 +126,9 @@ def drive(model):
             # set the gamepad values
             set_gamepad([[controls[0][0], throttle]])
 
+            # print('Main loop took {} seconds'.format(time.time() - last_time))
+            # last_time = time.time()
+
             # for yolo detection
             # screen = np.array(screen, dtype=np.uint8)
             # yolo_detection(tfnet, screen, speed, controls, gamepad, direct)
@@ -129,14 +138,12 @@ def drive(model):
 
             screen[280:-130, :, :] = draw_lane(screen[280:-130, :, :], lane, stop_line,
                                                left_line_color, right_line_color)
-            cv2.imshow("Frame", screen)
+            cv2.imshow("Driving-mode", yolo_screen)
             cv2.waitKey(1)
 
             if direct == 6:
-                cv2.destroyAllWindows()
                 print("Arrived at destination.")
-                stop()
-                pause = True
+                stop = True
 
             # print('Main loop took {} seconds'.format(time.time() - last_time))
             # last_time = time.time()
@@ -146,16 +153,17 @@ def drive(model):
                 cv2.destroyAllWindows()
                 pause = True
                 # release gamepad keys
-                stop()
                 print('Paused. To exit the program press Z.')
                 time.sleep(0.5)
 
         keys = key_check()
         if 'T' in keys:
             pause = False
+            stop = False
             print('Unpaused')
             time.sleep(1)
         elif 'Z' in keys:
+            cv2.destroyAllWindows()
             close = True
             print('Closing the program.')
             gamepad.UnPlug()

@@ -82,7 +82,7 @@ def light_recog(frame, direct, traffic_lights):
     if (0 <= top_left[1] and bottom_right[1] <= 437) and (244 <= top_left[0] and bottom_right[0] <= 630):
         frame = cv2.putText(frame, color_detected, bottom_right, cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
 
-    frame = cv2.putText(frame, "detected", bottom_right, cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
+    frame = cv2.putText(frame, color_detected, bottom_right, cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
 
     return frame, color_detected
 
