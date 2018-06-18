@@ -65,10 +65,11 @@ def drive(model):
 
     print("Press T to start driving")
 
-    yolo_screen, resized, speed, direct = img_process("Grand Theft Auto V")
-    cv2.imshow("Drive-mode", yolo_screen)
-
     while not close:
+        yolo_screen, resized, speed, direct = img_process("Grand Theft Auto V")
+        cv2.imshow("Driving-mode", yolo_screen)
+        cv2.waitKey(1)
+
         while not pause:
             # apply the preprocessing
             screen, resized, speed, direct = img_process("Grand Theft Auto V")
@@ -98,7 +99,7 @@ def drive(model):
                     else:
                         throttle = -0.7 if obj_distance <= 0.4 else -0.3
 
-                if color_detected == "Red":
+                elif color_detected == "Red":
                     if stop_line:
                         if speed < 5:
                             throttle = 0
@@ -106,8 +107,8 @@ def drive(model):
                             throttle = -0.5
                         elif 50 < stop_line[0][1] <= 120:
                             throttle = -1
-                    else:
-                        throttle = -0.5
+                    # else:
+                    #     throttle = -0.5
             elif speed > 5:
                 throttle = -1
             else:
@@ -117,24 +118,19 @@ def drive(model):
 
             # adjusting steering angle
             if lane[0] and lane[0][0] > left_line_max:
-                controls[0][0] = 0.27
-                left_line_color = [0, 0, 255]
+                if abs(controls[0][0]) < 0.27:
+                    controls[0][0] = 0.27
+                    left_line_color = [0, 0, 255]
             elif lane[1] and lane[1][0] < right_line_max:
-                controls[0][0] = -0.27
-                right_line_color = [0, 0, 255]
+                if abs(controls[0][0]) < 0.27:
+                    controls[0][0] = -0.27
+                    right_line_color = [0, 0, 255]
 
             # set the gamepad values
             set_gamepad([[controls[0][0], throttle]])
 
             # print('Main loop took {} seconds'.format(time.time() - last_time))
             # last_time = time.time()
-
-            # for yolo detection
-            # screen = np.array(screen, dtype=np.uint8)
-            # yolo_detection(tfnet, screen, speed, controls, gamepad, direct)
-            # cv2.imshow('frame', screen)
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     break
 
             screen[280:-130, :, :] = draw_lane(screen[280:-130, :, :], lane, stop_line,
                                                left_line_color, right_line_color)
@@ -153,6 +149,7 @@ def drive(model):
                 cv2.destroyAllWindows()
                 pause = True
                 # release gamepad keys
+                set_gamepad([[0, 0]])
                 print('Paused. To exit the program press Z.')
                 time.sleep(0.5)
 
